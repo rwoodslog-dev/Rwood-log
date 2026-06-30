@@ -2821,7 +2821,7 @@
     <div class="hint" style="text-align:center; margin-bottom:20px;">Ton identifiant est <b>prenom.nom</b> (ex : julien.dupont), et ton mot de passe est ta <b>date de naissance</b> au format JJMMAAAA.</div>
     <div class="field">
       <label>Identifiant</label>
-      <input type="text" id="authLoginId" placeholder="prenom.nom" autocapitalize="none" autocomplete="username">
+      <input type="text" id="authLoginId" placeholder="prenom.nom" autocapitalize="none" autocomplete="username" oninput="adjustLoginPwdKeyboard()">
     </div>
     <div class="field">
       <label>Mot de passe</label>
@@ -2907,8 +2907,55 @@
 
 </div>
 
-<!-- Modale info compte -->
-<div class="modal-overlay" id="modal-authInfoModal">
+<!-- Écran Développeur : Code Creator -->
+<div id="devCodeCreatorScreen" style="display:none; position:fixed; inset:0; z-index:200; background:var(--bg); flex-direction:column; align-items:center; justify-content:flex-start; padding:24px; overflow-y:auto;">
+  <div style="width:100%; max-width:340px; padding-top:20px;">
+    <h2 style="text-align:center; margin-bottom:4px;">🛠️ Code Creator</h2>
+    <div class="hint" style="text-align:center; margin-bottom:20px;">Crée une nouvelle entreprise cliente</div>
+
+    <div class="field">
+      <label>Nom de l'entreprise</label>
+      <input type="text" id="devCompanyName" placeholder="Ex : Charpente Dupont">
+    </div>
+    <div class="field">
+      <label>Adresse</label>
+      <input type="text" id="devCompanyAddress" placeholder="Ex : 12 rue des Charpentiers, 33000 Bordeaux">
+    </div>
+    <div class="field">
+      <label>Prénom du Patron</label>
+      <input type="text" id="devPatronFirstName" placeholder="Ex : Marc">
+    </div>
+    <div class="field">
+      <label>Nom du Patron</label>
+      <input type="text" id="devPatronLastName" placeholder="Ex : Dupont">
+    </div>
+    <div class="field">
+      <label>Logo (PNG)</label>
+      <input type="file" id="devCompanyLogo" accept="image/png">
+      <div id="devLogoPreviewWrap" style="display:none; margin-top:8px; text-align:center;">
+        <img id="devLogoPreview" style="max-height:80px; border-radius:8px;">
+      </div>
+    </div>
+
+    <div class="hint" id="devCodeCreatorError" style="color:var(--danger); display:none; margin-bottom:10px;"></div>
+
+    <button class="btn btn-primary btn-block" style="margin-top:10px;" id="devCodeCreatorSubmitBtn" onclick="submitCodeCreator()">Générer l'entreprise</button>
+    <button class="btn btn-outline btn-block" style="margin-top:10px;" onclick="exitDevMode()">← Quitter le mode développeur</button>
+  </div>
+
+  <!-- Confirmation après création -->
+  <div id="devCodeCreatorConfirm" style="display:none; width:100%; max-width:340px; text-align:center; padding-top:20px;">
+    <div style="font-size:40px; margin-bottom:10px;">✅</div>
+    <h2 style="margin-bottom:16px;">Entreprise créée !</h2>
+    <div class="card calc-result-card" style="margin-bottom:16px;">
+      <div class="calc-result-label">Code Entreprise</div>
+      <div class="calc-result-value" id="devConfirmCode" style="font-size:22px;">—</div>
+    </div>
+    <div class="hint" style="margin-bottom:20px; text-align:left;">Transmets ce code au Patron — il en aura besoin pour créer son profil sur l'app.</div>
+    <button class="btn btn-primary btn-block" onclick="resetCodeCreatorForm()">Créer une autre entreprise</button>
+    <button class="btn btn-outline btn-block" style="margin-top:10px;" onclick="exitDevMode()">← Quitter le mode développeur</button>
+  </div>
+</div>
   <div class="modal">
     <div class="modal-header">
       <span class="modal-title">Comment ça marche ?</span>
@@ -16461,6 +16508,7 @@ function showAuthLoginForm(){
   document.getElementById('authLoginId').value = '';
   document.getElementById('authLoginPwd').value = '';
   document.getElementById('authLoginError').style.display = 'none';
+  adjustLoginPwdKeyboard();
 }
 function showAuthCreateForm(){
   _authShowOnly('authCreateForm');
@@ -16587,6 +16635,20 @@ function finishAuthCreation(){
 const DEV_TRIGGER_ID = 'super-admin03';
 const DEV_LOGIN_EMAIL = 'rwoods.log@gmail.com';
 
+/* Adapte le clavier du champ mdp : numérique pour les comptes normaux, texte complet pour le Dev */
+function adjustLoginPwdKeyboard(){
+  const idField  = document.getElementById('authLoginId');
+  const pwdField = document.getElementById('authLoginPwd');
+  if(!idField || !pwdField) return;
+  if(idField.value.trim().toLowerCase() === DEV_TRIGGER_ID){
+    pwdField.setAttribute('inputmode', 'text');
+    pwdField.placeholder = 'Mot de passe';
+  } else {
+    pwdField.setAttribute('inputmode', 'numeric');
+    pwdField.placeholder = 'Date de naissance (JJMMAAAA)';
+  }
+}
+
 function attemptAuthLogin(){
   const inputId  = document.getElementById('authLoginId').value.trim().toLowerCase();
   const inputPwd = document.getElementById('authLoginPwd').value.trim();
@@ -16692,10 +16754,159 @@ async function attemptDevLogin(pwd){
   }
 }
 
-/* Placeholder : interface Dev complète (Code Creator, monitoring entreprises) branchée à l'étape suivante */
+/* Appel Supabase authentifié avec le token Dev (nécessaire pour que auth.uid() soit reconnu par RLS) */
+async function devSupaFetch(path, options={}){
+  const session = window.__devSession || JSON.parse(sessionStorage.getItem('rwoodlog_dev_session') || 'null');
+  if(!session || !session.access_token) throw new Error('Session développeur expirée');
+  const res = await fetch(SUPA_URL + path, {
+    ...options,
+    headers: {
+      'apikey': SUPA_KEY,
+      'Authorization': 'Bearer ' + session.access_token,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
+      ...(options.headers||{})
+    }
+  });
+  return res;
+}
+
 function enterDevMode(){
-  showToast("Vue Développeur — interface à compléter (étape suivante)");
-  renderSites();
+  document.getElementById('devCodeCreatorScreen').style.display = 'flex';
+  resetCodeCreatorForm();
+}
+
+function exitDevMode(){
+  window.__devSession = null;
+  sessionStorage.removeItem('rwoodlog_dev_session');
+  document.getElementById('devCodeCreatorScreen').style.display = 'none';
+  document.getElementById('authScreen').style.display = 'flex';
+  showAuthWelcome();
+}
+
+function resetCodeCreatorForm(){
+  document.getElementById('devCompanyName').value = '';
+  document.getElementById('devCompanyAddress').value = '';
+  document.getElementById('devPatronFirstName').value = '';
+  document.getElementById('devPatronLastName').value = '';
+  document.getElementById('devCompanyLogo').value = '';
+  document.getElementById('devLogoPreviewWrap').style.display = 'none';
+  document.getElementById('devCodeCreatorError').style.display = 'none';
+  document.getElementById('devCodeCreatorScreen').querySelector('div[style*="max-width:340px"]').style.display = 'block';
+  document.getElementById('devCodeCreatorConfirm').style.display = 'none';
+}
+
+document.addEventListener('change', function(e){
+  if(e.target && e.target.id === 'devCompanyLogo'){
+    const file = e.target.files[0];
+    if(!file) return;
+    const previewWrap = document.getElementById('devLogoPreviewWrap');
+    const preview = document.getElementById('devLogoPreview');
+    preview.src = URL.createObjectURL(file);
+    previewWrap.style.display = 'block';
+  }
+});
+
+/* Génère un code entreprise unique du type RW-XXXXXX (vérifie l'unicité en base) */
+async function generateUniqueCompanyCode(){
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sans 0/O/1/I pour éviter les confusions
+  for(let attempt=0; attempt<10; attempt++){
+    let code = 'RW-';
+    for(let i=0;i<6;i++) code += chars[Math.floor(Math.random()*chars.length)];
+    const res = await devSupaFetch('/rest/v1/companies?code_entreprise=eq.' + encodeURIComponent(code) + '&select=id');
+    const rows = await res.json();
+    if(Array.isArray(rows) && rows.length === 0) return code;
+  }
+  throw new Error('Impossible de générer un code unique, réessaie');
+}
+
+async function submitCodeCreator(){
+  const errorEl = document.getElementById('devCodeCreatorError');
+  errorEl.style.display = 'none';
+
+  const nom = document.getElementById('devCompanyName').value.trim();
+  const adresse = document.getElementById('devCompanyAddress').value.trim();
+  const patronPrenom = document.getElementById('devPatronFirstName').value.trim();
+  const patronNom = document.getElementById('devPatronLastName').value.trim();
+  const logoFile = document.getElementById('devCompanyLogo').files[0];
+
+  if(!nom || !patronPrenom || !patronNom){
+    errorEl.textContent = "Nom de l'entreprise et identité du Patron sont obligatoires";
+    errorEl.style.display = 'block';
+    return;
+  }
+  if(logoFile && logoFile.type !== 'image/png'){
+    errorEl.textContent = "Le logo doit être un fichier PNG";
+    errorEl.style.display = 'block';
+    return;
+  }
+  if(!navigator.onLine){
+    errorEl.textContent = "Pas de connexion — impossible de créer une entreprise hors ligne";
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  const btn = document.getElementById('devCodeCreatorSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Création en cours…';
+
+  try{
+    const code = await generateUniqueCompanyCode();
+
+    // 1. Créer l'entreprise (sans logo pour l'instant, on a besoin de son id)
+    const insertRes = await devSupaFetch('/rest/v1/companies', {
+      method: 'POST',
+      body: JSON.stringify({
+        code_entreprise: code,
+        nom: nom,
+        adresse: adresse || null,
+        patron_prenom: patronPrenom,
+        patron_nom: patronNom
+      })
+    });
+    if(!insertRes.ok){
+      const errBody = await insertRes.text();
+      throw new Error('Erreur création entreprise : ' + errBody);
+    }
+    const inserted = await insertRes.json();
+    const companyId = inserted[0].id;
+
+    // 2. Upload du logo si fourni
+    let logoUrl = null;
+    if(logoFile){
+      const session = window.__devSession || JSON.parse(sessionStorage.getItem('rwoodlog_dev_session') || 'null');
+      const uploadRes = await fetch(SUPA_URL + '/storage/v1/object/company-logos/' + companyId + '.png', {
+        method: 'POST',
+        headers: {
+          'apikey': SUPA_KEY,
+          'Authorization': 'Bearer ' + session.access_token,
+          'Content-Type': 'image/png'
+        },
+        body: logoFile
+      });
+      if(uploadRes.ok){
+        logoUrl = SUPA_URL + '/storage/v1/object/public/company-logos/' + companyId + '.png';
+        await devSupaFetch('/rest/v1/companies?id=eq.' + companyId, {
+          method: 'PATCH',
+          body: JSON.stringify({ logo_url: logoUrl })
+        });
+      } else {
+        showToast("Entreprise créée, mais l'upload du logo a échoué — tu pourras réessayer plus tard");
+      }
+    }
+
+    // Affiche la confirmation avec le code
+    document.getElementById('devCodeCreatorScreen').querySelector('div[style*="max-width:340px"]').style.display = 'none';
+    document.getElementById('devConfirmCode').textContent = code;
+    document.getElementById('devCodeCreatorConfirm').style.display = 'block';
+
+  } catch(e){
+    errorEl.textContent = e.message || "Erreur lors de la création de l'entreprise";
+    errorEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Générer l'entreprise";
+  }
 }
 
 
@@ -19083,7 +19294,7 @@ function renderHiddenNavList(){
    2. Ajouter un objet en tête du tableau CHANGELOG
    ══════════════════════════════════════════════════════ */
 
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.2.0';
 
 const CHANGELOG = [
   {
