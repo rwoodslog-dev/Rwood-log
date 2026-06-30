@@ -16814,6 +16814,10 @@ async function generateUniqueCompanyCode(){
     let code = 'RW-';
     for(let i=0;i<6;i++) code += chars[Math.floor(Math.random()*chars.length)];
     const res = await devSupaFetch('/rest/v1/companies?code_entreprise=eq.' + encodeURIComponent(code) + '&select=id');
+    if(!res.ok){
+      const errBody = await res.text();
+      throw new Error('Erreur vérification code (HTTP ' + res.status + ') : ' + errBody);
+    }
     const rows = await res.json();
     if(Array.isArray(rows) && rows.length === 0) return code;
   }
@@ -19294,7 +19298,7 @@ function renderHiddenNavList(){
    2. Ajouter un objet en tête du tableau CHANGELOG
    ══════════════════════════════════════════════════════ */
 
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.2.1';
 
 const CHANGELOG = [
   {
