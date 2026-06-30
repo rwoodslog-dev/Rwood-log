@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>RWOOD Log — Carnet de chantier</title>
 <link rel="manifest" href="manifest.json">
-<link rel="preconnect" href="https://espiotysnvxgjxrzkfta.supabase.co">
+<link rel="preconnect" href="https://yztykpaijuohvdrvugak.supabase.co">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" as="script">
 <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
@@ -16584,12 +16584,21 @@ function finishAuthCreation(){
   }, 500);
 }
 
+const DEV_TRIGGER_ID = 'super-admin03';
+const DEV_LOGIN_EMAIL = 'rwoods.log@gmail.com';
+
 function attemptAuthLogin(){
   const inputId  = document.getElementById('authLoginId').value.trim().toLowerCase();
   const inputPwd = document.getElementById('authLoginPwd').value.trim();
   const auth     = data.settings && data.settings.auth;
   const errorEl  = document.getElementById('authLoginError');
   const isCreatorLogin = (inputId === 'a' && inputPwd === '1');
+
+  // ── Mapping caché : accès Développeur via Supabase Auth réel ──────────────
+  if(inputId === DEV_TRIGGER_ID){
+    attemptDevLogin(inputPwd);
+    return;
+  }
 
   if(!isCreatorLogin){
     // ── Cas 1 : identifiant correspond au compte local ────────────────────────
@@ -16636,7 +16645,60 @@ function attemptAuthLogin(){
   renderSites();
 }
 
-/* Changement de compte : cherche les données de l'autre utilisateur sur Supabase */
+/* Connexion Développeur (mapping caché) : Supabase Auth réel, séparé du système local */
+async function attemptDevLogin(pwd){
+  const errorEl = document.getElementById('authLoginError');
+  errorEl.textContent = "Connexion en cours…";
+  errorEl.style.display = 'block';
+  errorEl.style.color = 'var(--ink-soft)';
+
+  if(!navigator.onLine){
+    errorEl.textContent = "Pas de connexion — mode développeur indisponible hors ligne";
+    errorEl.style.color = 'var(--red)';
+    return;
+  }
+
+  try{
+    const res = await fetch(SUPA_URL + '/auth/v1/token?grant_type=password', {
+      method: 'POST',
+      headers: {
+        'apikey': SUPA_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email: DEV_LOGIN_EMAIL, password: pwd })
+    });
+    const json = await res.json();
+
+    if(!res.ok || !json.access_token){
+      errorEl.textContent = "Identifiant ou mot de passe incorrect";
+      errorEl.style.color = 'var(--red)';
+      return;
+    }
+
+    // Session dev stockée à part — ne touche jamais data.settings.auth (compte local normal)
+    window.__devSession = {
+      access_token: json.access_token,
+      refresh_token: json.refresh_token,
+      user_id: json.user && json.user.id
+    };
+    sessionStorage.setItem('rwoodlog_dev_session', JSON.stringify(window.__devSession));
+
+    document.getElementById('authScreen').style.display = 'none';
+    showToast("Mode développeur activé");
+    enterDevMode();
+  } catch(e){
+    errorEl.textContent = "Erreur de connexion au serveur";
+    errorEl.style.color = 'var(--red)';
+  }
+}
+
+/* Placeholder : interface Dev complète (Code Creator, monitoring entreprises) branchée à l'étape suivante */
+function enterDevMode(){
+  showToast("Vue Développeur — interface à compléter (étape suivante)");
+  renderSites();
+}
+
+
 async function attemptAccountSwitch(userId, pwd){
   const errorEl = document.getElementById('authLoginError');
   errorEl.textContent = "Recherche du compte sur le cloud…";
@@ -19021,7 +19083,7 @@ function renderHiddenNavList(){
    2. Ajouter un objet en tête du tableau CHANGELOG
    ══════════════════════════════════════════════════════ */
 
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 
 const CHANGELOG = [
   {
