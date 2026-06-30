@@ -1,0 +1,72 @@
+{
+  "name": "RWOOD Log — Carnet de chantier",
+  "short_name": "RWOOD Log",
+  "description": "Carnet de chantier pour équipe de charpente : suivi de chantiers, pointage, stock camion et fiches d'heures.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#1C1714",
+  "theme_color": "#1C1714",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Prendre une photo",
+      "short_name": "Photo",
+      "description": "Ouvrir directement la galerie photo",
+      "url": "./index.html?shortcut=photo"
+    },
+    {
+      "name": "Nouveau chantier",
+      "short_name": "Chantier",
+      "description": "Créer un nouveau chantier",
+      "url": "./index.html?shortcut=newsite",
+      "icons": [
+        {
+          "src": "icons/shortcut-newsite.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Calculatrice",
+      "short_name": "Calcul",
+      "description": "Ouvrir les outils de calcul",
+      "url": "./index.html?shortcut=calc",
+      "icons": [
+        {
+          "src": "icons/shortcut-calc.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Ajouter un évènement",
+      "short_name": "Évènement",
+      "description": "Ajouter une tâche à l'agenda",
+      "url": "./index.html?shortcut=agenda",
+      "icons": [
+        {
+          "src": "icons/shortcut-agenda.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}
