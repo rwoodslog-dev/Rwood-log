@@ -23688,7 +23688,7 @@ function navManagerToggle(view, visible){
    2. Ajouter un objet en tête du tableau CHANGELOG
    ══════════════════════════════════════════════════════ */
 
-const APP_VERSION = '1.5.6';
+const APP_VERSION = '1.5.7';
 
 const CHANGELOG = [
   {
@@ -30563,21 +30563,426 @@ async function renderDevCompaniesList(){
   }
   const sorted = [...companies].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
   list.innerHTML = sorted.map(c => `
-    <div class="card" style="padding:10px 14px; margin-bottom:8px;">
+    <div class="card" style="padding:10px 14px; margin-bottom:8px; cursor:pointer; border:1.5px solid transparent; transition:border-color .15s;"
+         onclick="openDevCompanyDetail(${JSON.stringify(JSON.stringify(c))})"
+         onmouseenter="this.style.borderColor='var(--wood)'" onmouseleave="this.style.borderColor='transparent'">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
         <div>
           <div style="font-weight:700;">${escapeHtml(c.name)}</div>
-          <div class="hint" style="margin-top:2px;">${new Date(c.createdAt).toLocaleDateString('fr-FR')}</div>
+          <div class="hint" style="margin-top:2px;">Créé le ${new Date(c.createdAt).toLocaleDateString('fr-FR')}</div>
         </div>
-        <div style="font-family:monospace; font-size:18px; font-weight:800; letter-spacing:2px; color:var(--wood);">${escapeHtml(c.code)}</div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div style="font-family:monospace; font-size:16px; font-weight:800; letter-spacing:2px; color:var(--wood);">${escapeHtml(c.code)}</div>
+          <span style="font-size:18px; color:var(--ink-soft);">›</span>
+        </div>
       </div>
     </div>
   `).join('');
 }
 
-function normalizePhone(p){
-  return (p || '').replace(/[^0-9+]/g, '');
+/* ══ MODULE — DevCompanyDetail : panneau admin par entreprise ══════════════ */
+
+let _devDetailCompany = null; // entreprise couramment ouverte { code, name, createdAt }
+let _devDetailCurrentTab = 'users';
+let _devDetailData = null;    // données parsées depuis Supabase pour cette entreprise
+
+/* Fetch DIRECT (sans préfixe supaFetch) — lit les clés d'une entreprise tierce */
+async function _devRawFetch(path){
+  const res = await fetch(SUPA_URL + path, {
+    headers:{ 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Prefer': '' }
+  });
+  if(!res.ok) return null;
+  const rows = await res.json();
+  return (rows && rows.length) ? rows[0] : null;
 }
+
+async function _devRawFetchAll(path){
+  const res = await fetch(SUPA_URL + path, {
+    headers:{ 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Prefer': '' }
+  });
+  if(!res.ok) return [];
+  return await res.json();
+}
+
+async function _devRawSave(key, dataObj){
+  await fetch(SUPA_URL + '/rest/v1/rwood_sync', {
+    method: 'POST',
+    headers:{
+      'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'resolution=merge-duplicates,return=minimal'
+    },
+    body: JSON.stringify({ user_id: key, updated_at: new Date().toISOString(), data: JSON.stringify(dataObj) })
+  });
+}
+
+async function _devRawDelete(key){
+  await fetch(SUPA_URL + '/rest/v1/rwood_sync?user_id=eq.' + encodeURIComponent(key), {
+    method: 'DELETE',
+    headers:{ 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+  });
+}
+
+function openDevCompanyDetail(companyJson){
+  let company;
+  try{ company = JSON.parse(companyJson); } catch(e){ return; }
+  _devDetailCompany = company;
+  _devDetailData = null;
+  _devDetailCurrentTab = 'users';
+
+  const nameEl = document.getElementById('devDetailCompanyName');
+  const codeEl = document.getElementById('devDetailCompanyCode');
+  if(nameEl) nameEl.textContent = company.name || '—';
+  if(codeEl) codeEl.textContent = 'Code : ' + (company.code || '—');
+
+  // Reset tabs
+  ['users','pointages','stock','chantiers'].forEach(t => {
+    const btn  = document.getElementById('devDetailTab-' + t);
+    const body = document.getElementById('devDetailTab-' + t + '-body');
+    if(btn)  btn.className  = t === 'users' ? 'btn btn-primary' : 'btn btn-outline';
+    if(btn)  btn.style.fontSize = '11px';
+    if(btn)  btn.style.whiteSpace = 'nowrap';
+    if(body) body.style.display = 'none';
+  });
+
+  const loader = document.getElementById('devDetailLoader');
+  if(loader){ loader.style.display = 'block'; loader.textContent = 'Chargement des données…'; }
+
+  openModal('devCompanyDetail');
+  _devDetailLoadAll(company.code);
+}
+
+async function _devDetailLoadAll(code){
+  const pfx = code + '__';
+  const loader = document.getElementById('devDetailLoader');
+
+  try{
+    // 1. Données principales (sites, workers, stock, contacts)
+    const mainRow = await _devRawFetch('/rest/v1/rwood_sync?user_id=eq.' + encodeURIComponent(pfx + 'rwood-data') + '&select=data');
+    const main = mainRow ? (typeof mainRow.data === 'string' ? JSON.parse(mainRow.data) : mainRow.data) : {};
+
+    // 2. Pointages (toutes les clés company_pointages_v1_*)
+    const pointagesRows = await _devRawFetchAll(
+      '/rest/v1/rwood_sync?user_id=like.' + encodeURIComponent(pfx + 'company_pointages_v1_%') + '&select=user_id,data,updated_at'
+    );
+
+    // 3. Registre utilisateurs
+    const usersRow = await _devRawFetch('/rest/v1/rwood_sync?user_id=eq.' + encodeURIComponent(pfx + 'company_users_registry') + '&select=data');
+    const usersRegistry = usersRow ? (typeof usersRow.data === 'string' ? JSON.parse(usersRow.data) : usersRow.data) : null;
+
+    // 4. Magasin / Machines
+    const magasinRow = await _devRawFetch('/rest/v1/rwood_sync?user_id=eq.' + encodeURIComponent(pfx + 'company_magasin_machines') + '&select=data');
+    const magasin = magasinRow ? (typeof magasinRow.data === 'string' ? JSON.parse(magasinRow.data) : magasinRow.data) : null;
+
+    _devDetailData = {
+      code: pfx,
+      main: main || {},
+      pointagesRows: pointagesRows || [],
+      usersRegistry: usersRegistry,
+      magasin: magasin
+    };
+
+    if(loader) loader.style.display = 'none';
+    switchDevDetailTab(_devDetailCurrentTab);
+
+  } catch(e){
+    if(loader){ loader.textContent = 'Erreur de chargement : ' + (e.message || 'réessaie'); }
+  }
+}
+
+function switchDevDetailTab(tab){
+  _devDetailCurrentTab = tab;
+  ['users','pointages','stock','chantiers'].forEach(t => {
+    const btn  = document.getElementById('devDetailTab-' + t);
+    const body = document.getElementById('devDetailTab-' + t + '-body');
+    if(btn){ btn.className = t === tab ? 'btn btn-primary' : 'btn btn-outline'; btn.style.fontSize='11px'; btn.style.whiteSpace='nowrap'; }
+    if(body) body.style.display = t === tab ? 'block' : 'none';
+  });
+  if(!_devDetailData) return;
+  const renders = { users: _renderDevDetailUsers, pointages: _renderDevDetailPointages, stock: _renderDevDetailStock, chantiers: _renderDevDetailChantiers };
+  if(renders[tab]) renders[tab]();
+}
+
+/* ─── helpers HTML ──────────────────────────────────────────────────────── */
+function _devDetailCard(title, badge, onEdit, onDelete){
+  return `
+    <div style="background:var(--card); border-radius:10px; padding:10px 12px; margin-bottom:8px; display:flex; align-items:flex-start; gap:8px;">
+      <div style="flex:1; min-width:0;">
+        <div style="font-weight:700; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(title)}</div>
+        ${badge ? `<div class="hint" style="margin-top:2px;">${escapeHtml(badge)}</div>` : ''}
+      </div>
+      <div style="display:flex; gap:6px; flex-shrink:0;">
+        ${onEdit ? `<button class="btn btn-outline btn-sm" onclick="${onEdit}" style="font-size:11px; padding:4px 8px;">✏️</button>` : ''}
+        ${onDelete ? `<button class="btn btn-sm" onclick="${onDelete}" style="font-size:11px; padding:4px 8px; background:var(--danger,#E07A63); color:#fff; border:none; border-radius:8px;">🗑</button>` : ''}
+      </div>
+    </div>`;
+}
+
+function _devDetailEmpty(msg){
+  return `<div class="hint" style="text-align:center; padding:20px;">${msg}</div>`;
+}
+
+/* ─── Onglet Utilisateurs ─────────────────────────────────────────────── */
+function _renderDevDetailUsers(){
+  const el = document.getElementById('devDetailTab-users-body');
+  if(!el || !_devDetailData) return;
+
+  const workers = _devDetailData.main.workers || [];
+  const contacts = _devDetailData.main.contacts || [];
+  const registry = _devDetailData.usersRegistry;
+
+  // Fusionner workers + registry (authIds enregistrés)
+  let html = '<div style="margin-bottom:8px; font-size:12px; font-weight:700; color:var(--ink-soft);">COMPTES ENREGISTRÉS (' + workers.length + ')</div>';
+
+  if(!workers.length){
+    html += _devDetailEmpty('Aucun compte utilisateur pour cette entreprise');
+  } else {
+    html += workers.map(w => {
+      const role = w.role || w.job || '—';
+      const name = [w.firstName, w.lastName].filter(Boolean).join(' ') || w.name || w.authId || '(sans nom)';
+      const badge = 'Rôle : ' + role + (w.authId ? ' · ID : ' + w.authId : '');
+      return _devDetailCard(name, badge,
+        `devDetailEditUser(${JSON.stringify(JSON.stringify(w))})`,
+        `devDetailDeleteUser(${JSON.stringify(JSON.stringify(w))})`
+      );
+    }).join('');
+  }
+
+  if(registry && registry.users && registry.users.length){
+    html += '<div style="margin:12px 0 8px; font-size:12px; font-weight:700; color:var(--ink-soft);">REGISTRE AUTH (' + registry.users.length + ')</div>';
+    html += registry.users.map(u => {
+      const name = u.firstName ? (u.firstName + ' ' + (u.lastName||'')) : u.authId;
+      return _devDetailCard(name.trim() || '—', 'authId : ' + (u.authId||'—') + ' · rôle : ' + (u.role||'—'), null,
+        `devDetailDeleteRegistryUser(${JSON.stringify(JSON.stringify(u))})`
+      );
+    }).join('');
+  }
+
+  el.innerHTML = html;
+}
+
+/* ─── Onglet Pointages ──────────────────────────────────────────────────── */
+function _renderDevDetailPointages(){
+  const el = document.getElementById('devDetailTab-pointages-body');
+  if(!el || !_devDetailData) return;
+
+  const rows = _devDetailData.pointagesRows;
+  if(!rows.length){
+    el.innerHTML = _devDetailEmpty('Aucune fiche de pointage pour cette entreprise');
+    return;
+  }
+
+  let html = '<div style="margin-bottom:8px; font-size:12px; font-weight:700; color:var(--ink-soft);">DEVICES DE SYNC (' + rows.length + ')</div>';
+  html += rows.map(row => {
+    const d = typeof row.data === 'string' ? (() => { try{ return JSON.parse(row.data); }catch(e){ return {}; } })() : (row.data || {});
+    const deviceId = row.user_id.replace(_devDetailData.code + 'company_pointages_v1_', '');
+    const fiches = d.fiches || d.pointages || [];
+    const updatedAt = row.updated_at ? new Date(row.updated_at).toLocaleDateString('fr-FR') : '—';
+    const title = 'Appareil : ' + (deviceId.length > 20 ? deviceId.substring(0,20) + '…' : deviceId);
+    const badge = fiches.length + ' fiche(s) · dernière sync : ' + updatedAt;
+    return _devDetailCard(title, badge,
+      null,
+      `devDetailDeletePointageDevice(${JSON.stringify(JSON.stringify({ user_id: row.user_id }))})`
+    );
+  }).join('');
+
+  el.innerHTML = html;
+}
+
+/* ─── Onglet Stock / Machines ───────────────────────────────────────────── */
+function _renderDevDetailStock(){
+  const el = document.getElementById('devDetailTab-stock-body');
+  if(!el || !_devDetailData) return;
+
+  const stock = _devDetailData.main.stock || [];
+  const magasin = _devDetailData.magasin;
+  const magItems = magasin ? (magasin.items || magasin.machines || []) : [];
+
+  let html = '<div style="margin-bottom:8px; font-size:12px; font-weight:700; color:var(--ink-soft);">STOCK DÉPÔT (' + stock.length + ')</div>';
+  if(!stock.length){
+    html += _devDetailEmpty('Aucun article en stock');
+  } else {
+    html += stock.map(item => {
+      const badge = 'Qté : ' + (item.qty || 0) + ' ' + (item.unit || '') + (item.category ? ' · ' + item.category : '');
+      return _devDetailCard(item.name || '—', badge,
+        `devDetailEditStockItem(${JSON.stringify(JSON.stringify(item))})`,
+        `devDetailDeleteStockItem(${JSON.stringify(JSON.stringify(item))})`
+      );
+    }).join('');
+  }
+
+  if(magItems.length){
+    html += '<div style="margin:12px 0 8px; font-size:12px; font-weight:700; color:var(--ink-soft);">MAGASIN / MACHINES (' + magItems.length + ')</div>';
+    html += magItems.map(item => {
+      const badge = item.category ? item.category : '';
+      return _devDetailCard(item.name || item.designation || '—', badge,
+        null,
+        `devDetailDeleteMagasinItem(${JSON.stringify(JSON.stringify(item))})`
+      );
+    }).join('');
+  } else {
+    html += '<div style="margin:12px 0 8px; font-size:12px; font-weight:700; color:var(--ink-soft);">MAGASIN / MACHINES</div>';
+    html += _devDetailEmpty('Aucune machine enregistrée');
+  }
+
+  el.innerHTML = html;
+}
+
+/* ─── Onglet Chantiers ──────────────────────────────────────────────────── */
+function _renderDevDetailChantiers(){
+  const el = document.getElementById('devDetailTab-chantiers-body');
+  if(!el || !_devDetailData) return;
+
+  const sites = _devDetailData.main.sites || [];
+  if(!sites.length){
+    el.innerHTML = _devDetailEmpty('Aucun chantier pour cette entreprise');
+    return;
+  }
+
+  const statusLabels = { 'en-cours':'En cours', 'a-faire':'À faire', 'termine':'Terminé', 'archive':'Archivé' };
+  let html = '<div style="margin-bottom:8px; font-size:12px; font-weight:700; color:var(--ink-soft);">CHANTIERS (' + sites.length + ')</div>';
+  html += sites.map(site => {
+    const badge = (statusLabels[site.status] || site.status || '—') + (site.address ? ' · ' + site.address : '');
+    return _devDetailCard(site.name || '—', badge,
+      `devDetailEditSite(${JSON.stringify(JSON.stringify(site))})`,
+      `devDetailDeleteSite(${JSON.stringify(JSON.stringify(site))})`
+    );
+  }).join('');
+
+  el.innerHTML = html;
+}
+
+/* ─── Actions : Modifier ────────────────────────────────────────────────── */
+function devDetailEditUser(wJson){
+  let w; try{ w = JSON.parse(wJson); } catch(e){ return; }
+  const newName = prompt('Modifier le nom :', [w.firstName, w.lastName].filter(Boolean).join(' ') || w.name || '');
+  if(newName === null) return;
+  const workers = _devDetailData.main.workers || [];
+  const idx = workers.findIndex(x => x.id === w.id || x.authId === w.authId);
+  if(idx < 0){ showToast('Utilisateur introuvable'); return; }
+  if(w.firstName !== undefined){
+    const parts = newName.trim().split(' ');
+    workers[idx].firstName = parts[0] || '';
+    workers[idx].lastName  = parts.slice(1).join(' ') || '';
+  } else {
+    workers[idx].name = newName.trim();
+  }
+  _devDetailSaveMain().then(() => { showToast('✅ Modifié'); _renderDevDetailUsers(); });
+}
+
+function devDetailEditStockItem(itemJson){
+  let item; try{ item = JSON.parse(itemJson); } catch(e){ return; }
+  const newQty = prompt('Nouvelle quantité pour "' + (item.name||'') + '" :', item.qty ?? '');
+  if(newQty === null) return;
+  const stock = _devDetailData.main.stock || [];
+  const idx = stock.findIndex(x => x.id === item.id);
+  if(idx < 0){ showToast('Article introuvable'); return; }
+  stock[idx].qty = parseFloat(newQty) || 0;
+  _devDetailSaveMain().then(() => { showToast('✅ Quantité modifiée'); _renderDevDetailStock(); });
+}
+
+function devDetailEditSite(siteJson){
+  let site; try{ site = JSON.parse(siteJson); } catch(e){ return; }
+  const newName = prompt('Modifier le nom du chantier :', site.name || '');
+  if(newName === null) return;
+  const sites = _devDetailData.main.sites || [];
+  const idx = sites.findIndex(x => x.id === site.id);
+  if(idx < 0){ showToast('Chantier introuvable'); return; }
+  sites[idx].name = newName.trim();
+  _devDetailSaveMain().then(() => { showToast('✅ Chantier modifié'); _renderDevDetailChantiers(); });
+}
+
+/* ─── Actions : Supprimer ───────────────────────────────────────────────── */
+function devDetailDeleteUser(wJson){
+  let w; try{ w = JSON.parse(wJson); } catch(e){ return; }
+  const name = [w.firstName, w.lastName].filter(Boolean).join(' ') || w.name || w.authId || 'cet utilisateur';
+  if(!confirm('Supprimer définitivement ' + name + ' ?')) return;
+  _devDetailData.main.workers = (_devDetailData.main.workers || []).filter(x => x.id !== w.id && x.authId !== w.authId);
+  _devDetailSaveMain().then(() => { showToast('🗑 Utilisateur supprimé'); _renderDevDetailUsers(); });
+}
+
+function devDetailDeleteRegistryUser(uJson){
+  let u; try{ u = JSON.parse(uJson); } catch(e){ return; }
+  if(!confirm('Supprimer l\'entrée auth "' + (u.authId||'?') + '" du registre ?')) return;
+  if(_devDetailData.usersRegistry && _devDetailData.usersRegistry.users){
+    _devDetailData.usersRegistry.users = _devDetailData.usersRegistry.users.filter(x => x.authId !== u.authId);
+    _devRawSave(_devDetailData.code + 'company_users_registry', _devDetailData.usersRegistry)
+      .then(() => { showToast('🗑 Entrée registre supprimée'); _renderDevDetailUsers(); });
+  }
+}
+
+function devDetailDeletePointageDevice(rowJson){
+  let row; try{ row = JSON.parse(rowJson); } catch(e){ return; }
+  if(!confirm('Supprimer les pointages de cet appareil ? Cette action est irréversible.')) return;
+  _devRawDelete(row.user_id).then(() => {
+    _devDetailData.pointagesRows = _devDetailData.pointagesRows.filter(r => r.user_id !== row.user_id);
+    showToast('🗑 Pointages supprimés');
+    _renderDevDetailPointages();
+  });
+}
+
+function devDetailDeleteStockItem(itemJson){
+  let item; try{ item = JSON.parse(itemJson); } catch(e){ return; }
+  if(!confirm('Supprimer "' + (item.name||'cet article') + '" du stock ?')) return;
+  _devDetailData.main.stock = (_devDetailData.main.stock || []).filter(x => x.id !== item.id);
+  _devDetailSaveMain().then(() => { showToast('🗑 Article supprimé'); _renderDevDetailStock(); });
+}
+
+function devDetailDeleteMagasinItem(itemJson){
+  let item; try{ item = JSON.parse(itemJson); } catch(e){ return; }
+  if(!confirm('Supprimer "' + (item.name||item.designation||'cette machine') + '" du magasin ?')) return;
+  if(_devDetailData.magasin){
+    const key = _devDetailData.magasin.items ? 'items' : 'machines';
+    _devDetailData.magasin[key] = (_devDetailData.magasin[key] || []).filter(x => x.id !== item.id);
+    _devRawSave(_devDetailData.code + 'company_magasin_machines', _devDetailData.magasin)
+      .then(() => { showToast('🗑 Machine supprimée'); _renderDevDetailStock(); });
+  }
+}
+
+function devDetailDeleteSite(siteJson){
+  let site; try{ site = JSON.parse(siteJson); } catch(e){ return; }
+  if(!confirm('Supprimer définitivement le chantier "' + (site.name||'?') + '" ?')) return;
+  _devDetailData.main.sites = (_devDetailData.main.sites || []).filter(x => x.id !== site.id);
+  _devDetailSaveMain().then(() => { showToast('🗑 Chantier supprimé'); _renderDevDetailChantiers(); });
+}
+
+/* ─── Supprimer toute l'entreprise ─────────────────────────────────────── */
+async function devDeleteCompany(){
+  if(!_devDetailCompany) return;
+  const name = _devDetailCompany.name || _devDetailCompany.code;
+  if(!confirm('⚠️ Supprimer DÉFINITIVEMENT l\'entreprise "' + name + '" et TOUTES ses données Supabase ?\n\nCette action est irréversible.')) return;
+  if(!confirm('Dernière confirmation : supprimer ' + name + ' ?')) return;
+
+  const pfx = _devDetailCompany.code + '__';
+  try{
+    // Récupérer toutes les clés avec ce préfixe
+    const allRows = await _devRawFetchAll(
+      '/rest/v1/rwood_sync?user_id=like.' + encodeURIComponent(pfx) + '*&select=user_id'
+    );
+    // Supprimer chaque ligne
+    for(const row of allRows){
+      await _devRawDelete(row.user_id);
+    }
+    // Retirer du registre Dev
+    const companies = await _fetchCompaniesRegistry();
+    const updated = companies.filter(c => c.code !== _devDetailCompany.code);
+    await _saveCompaniesRegistry(updated);
+
+    showToast('🗑 Entreprise "' + name + '" supprimée');
+    closeModal('devCompanyDetail');
+    renderDevCompaniesList();
+  } catch(e){
+    showToast('Erreur lors de la suppression : ' + (e.message || 'réessaie'));
+  }
+}
+
+/* ─── Sauvegarde des données principales ──────────────────────────────── */
+async function _devDetailSaveMain(){
+  await _devRawSave(_devDetailData.code + 'rwood-data', _devDetailData.main);
+}
+
+/* ══ FIN MODULE — DevCompanyDetail ════════════════════════════════════════ */
+
 
 /* Le contact "Moi" porte le telephone qui sert d'identifiant stable cross-device
    (les id de contacts sont generes localement, donc inutilisables d'un appareil a l'autre) */
@@ -33945,6 +34350,44 @@ async function comptaEditEnsurePulled(){
       <button class="btn btn-outline btn-block" id="devPanelRefreshBtn" onclick="refreshDevPanel()">🔄 Actualiser</button>
     </div>
     <div id="devPanelList"></div>
+  </div>
+</div>
+
+<!-- MODAL : Admin Dev — Détail entreprise -->
+<div class="modal-overlay" id="modal-devCompanyDetail">
+  <div class="modal" style="max-height:92vh; display:flex; flex-direction:column;">
+    <div class="modal-header" style="flex-shrink:0;">
+      <div>
+        <div id="devDetailCompanyName" style="font-size:16px; font-weight:800;">—</div>
+        <div id="devDetailCompanyCode" style="font-size:11px; font-family:monospace; color:var(--ink-soft); margin-top:2px;">—</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('devCompanyDetail')">×</button>
+    </div>
+
+    <!-- Tabs -->
+    <div style="display:flex; gap:4px; padding:0 16px 10px; flex-shrink:0; overflow-x:auto;">
+      <button id="devDetailTab-users"     class="btn btn-primary"  style="font-size:11px; white-space:nowrap;" onclick="switchDevDetailTab('users')">👥 Utilisateurs</button>
+      <button id="devDetailTab-pointages" class="btn btn-outline"   style="font-size:11px; white-space:nowrap;" onclick="switchDevDetailTab('pointages')">⏱ Pointages</button>
+      <button id="devDetailTab-stock"     class="btn btn-outline"   style="font-size:11px; white-space:nowrap;" onclick="switchDevDetailTab('stock')">📦 Stock / Machines</button>
+      <button id="devDetailTab-chantiers" class="btn btn-outline"   style="font-size:11px; white-space:nowrap;" onclick="switchDevDetailTab('chantiers')">🏗 Chantiers</button>
+    </div>
+
+    <!-- Corps scrollable -->
+    <div style="flex:1; overflow-y:auto; padding:0 16px 16px;">
+      <div id="devDetailLoader" style="text-align:center; padding:30px; color:var(--ink-soft);">Chargement…</div>
+
+      <div id="devDetailTab-users-body"     style="display:none;"></div>
+      <div id="devDetailTab-pointages-body" style="display:none;"></div>
+      <div id="devDetailTab-stock-body"     style="display:none;"></div>
+      <div id="devDetailTab-chantiers-body" style="display:none;"></div>
+    </div>
+
+    <!-- Footer : supprimer l'entreprise entière -->
+    <div style="padding:12px 16px; border-top:1px solid var(--line); flex-shrink:0;">
+      <button class="btn btn-outline btn-block" style="border-color:var(--danger,#E07A63); color:var(--danger,#E07A63);" onclick="devDeleteCompany()">
+        🗑 Supprimer cette entreprise et toutes ses données
+      </button>
+    </div>
   </div>
 </div>
 
