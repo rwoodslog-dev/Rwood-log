@@ -3044,14 +3044,14 @@
   <div id="authLoginForm" style="display:none; width:100%; max-width:340px;">
     <div style="font-size:40px; text-align:center; margin-bottom:6px;">🔑</div>
     <h2 style="text-align:center; margin-bottom:6px;">Connexion</h2>
-    <div class="hint" style="text-align:center; margin-bottom:20px;">Ton identifiant est <b>prenom.nom</b> (ex : julien.dupont), et ton mot de passe est ta <b>date de naissance</b> au format JJMMAAAA.</div>
+    <div class="hint" style="text-align:center; margin-bottom:20px;">Ton identifiant est <b>prenom.nom</b> (ex : julien.dupont), et ton mot de passe est le <b>code à 8 chiffres</b> que tu as choisi à la création de ton profil.</div>
     <div class="field">
       <label>Identifiant</label>
-      <input type="text" id="authLoginId" placeholder="prenom.nom" autocapitalize="none" autocomplete="username">
+      <input type="text" id="authLoginId" placeholder="prenom.nom" autocapitalize="none" autocomplete="username" oninput="adjustLoginPwdKeyboard()">
     </div>
     <div class="field">
       <label>Mot de passe</label>
-      <input type="password" id="authLoginPwd" placeholder="Date de naissance (JJMMAAAA)" inputmode="numeric" autocomplete="current-password">
+      <input type="password" id="authLoginPwd" placeholder="Code à 8 chiffres" inputmode="numeric" autocomplete="current-password">
     </div>
     <div class="hint" id="authLoginError" style="color:var(--danger); display:none; margin-bottom:10px;"></div>
     <button class="btn btn-primary btn-block" onclick="attemptAuthLogin()">Se connecter</button>
@@ -3156,11 +3156,11 @@
     </div>
     <div class="field">
       <div class="section-title">Créer mon profil</div>
-      <p style="margin:0; line-height:1.6;">Si c'est la première fois que tu utilises RWOOD sur cet appareil, crée ton profil avec ton prénom, ton nom et ta date de naissance. L'app génère automatiquement ton identifiant (ex : <b>julien.dupont</b>) et ton mot de passe (ta date de naissance au format JJMMAAAA). Note-les quelque part.</p>
+      <p style="margin:0; line-height:1.6;">Si c'est la première fois que tu utilises RWOOD sur cet appareil, crée ton profil avec ton prénom, ton nom et un code à 8 chiffres de ton choix. L'app génère automatiquement ton identifiant (ex : <b>julien.dupont</b>). Note-les quelque part.</p>
     </div>
     <div class="field">
       <div class="section-title">J'ai déjà un compte</div>
-      <p style="margin:0; line-height:1.6;">Tu as déjà créé un profil sur cet appareil ou tu reviens après une déconnexion ? Utilise l'identifiant et le mot de passe notés à la création. Si tu as oublié ton mot de passe, c'est simplement ta <b>date de naissance</b> au format JJMMAAAA (ex : <b>15061985</b>).</p>
+      <p style="margin:0; line-height:1.6;">Tu as déjà créé un profil sur cet appareil ou tu reviens après une déconnexion ? Utilise l'identifiant et le mot de passe notés à la création. Si tu as oublié ton mot de passe, contacte ton administrateur.</p>
     </div>
     <div class="field">
       <div class="section-title">Importer mes données</div>
@@ -20091,8 +20091,8 @@ function updateSecurityStatusLabel(){
   if(!el) return;
   const customized = !!(data.settings.auth && data.settings.auth.pwdCustomized);
   el.textContent = customized
-    ? '✅ Tu utilises un code personnalisé — ta date de naissance ne fonctionne plus pour te connecter.'
-    : 'ℹ️ Tu utilises actuellement ta date de naissance comme mot de passe.';
+    ? '✅ Tu utilises un code à 8 chiffres personnalisé.'
+    : 'ℹ️ Aucun mot de passe personnalisé défini — utilise le code choisi à la création.';
   el.style.color = customized ? 'var(--green)' : 'var(--ink-soft)';
 }
 
@@ -21087,11 +21087,11 @@ function attemptAuthLogin(){
       if(!auth.authPwd){
         // Ancien compte sans mot de passe → définir le mdp saisi
         if(!inputPwd){
-          errorEl.textContent = "Saisis ta date de naissance (JJMMAAAA) pour définir ton mot de passe";
+          errorEl.textContent = "Saisis ton code à 8 chiffres pour définir ton mot de passe";
           errorEl.style.display = 'block'; return;
         }
         if(!/^\d{8}$/.test(inputPwd)){
-          errorEl.textContent = "Format attendu : JJMMAAAA (ex : 15061985)";
+          errorEl.textContent = "Le mot de passe doit contenir exactement 8 chiffres";
           errorEl.style.display = 'block'; return;
         }
         auth.authPwd = inputPwd;
@@ -23688,7 +23688,7 @@ function navManagerToggle(view, visible){
    2. Ajouter un objet en tête du tableau CHANGELOG
    ══════════════════════════════════════════════════════ */
 
-const APP_VERSION = '1.5.7';
+const APP_VERSION = '1.5.8';
 
 const CHANGELOG = [
   {
