@@ -2926,6 +2926,84 @@
   /* Modals centrés */
   body.pc-mode .modal-overlay{ align-items:center !important; }
 
+  /* MODULE — TypeJournee : badge absence dans les listes */
+  .type-journee-badge{
+    display:inline-flex; align-items:center; gap:3px;
+    font-size:11px; font-weight:700; padding:1px 7px; border-radius:20px;
+    margin-left:6px; white-space:nowrap; vertical-align:middle;
+  }
+  select.fiche-type-journee{
+    width:100%; padding:9px 10px; border-radius:9px;
+    background:var(--card); color:var(--ink); border:1px solid var(--line);
+    font-size:14px;
+  }
+  /* MODULE — SitesFilter : barre recherche + filtres */
+  .sites-filter-bar{ margin-bottom:14px; display:flex; flex-direction:column; gap:8px; }
+  .sites-filter-search{
+    width:100%; box-sizing:border-box; padding:12px 14px; font-size:15px;
+    border-radius:11px; border:1px solid var(--line); background:var(--card); color:var(--ink);
+  }
+  .sites-filter-search:focus{ outline:none; border-color:var(--wood); }
+  .sites-filter-selects{ display:flex; gap:8px; }
+  .sites-filter-selects select{
+    flex:1; min-width:0; padding:10px 12px; font-size:14px;
+    border-radius:11px; border:1px solid var(--line); background:var(--card); color:var(--ink);
+  }
+  /* MODULE — Galerie */
+  .galerie-group{ margin-bottom:22px; }
+  .galerie-group-head{
+    display:flex; align-items:center; gap:8px; font-size:15px; font-weight:800;
+    margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid var(--line);
+  }
+  .galerie-zone{
+    margin-left:auto; font-size:11px; font-weight:700; color:var(--wood);
+    background:var(--card); border:1px solid var(--line); border-radius:20px; padding:2px 9px;
+  }
+  .galerie-grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(104px, 1fr)); gap:8px;
+  }
+  .galerie-cell{ cursor:pointer; border-radius:10px; overflow:hidden; background:var(--card); }
+  .galerie-cell img{
+    width:100%; aspect-ratio:1/1; object-fit:cover; display:block; background:var(--bg-elev);
+  }
+  .galerie-cap{
+    font-size:10px; color:var(--ink-soft); padding:4px 6px; line-height:1.3;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  #galerieLightbox{
+    position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.92);
+    display:none; flex-direction:column; align-items:center; justify-content:center; padding:20px; gap:14px;
+  }
+  #galerieLightbox img{ max-width:100%; max-height:82vh; object-fit:contain; border-radius:8px; }
+  .galerie-lb-cap{ color:#fff; font-size:13px; text-align:center; opacity:.85; }
+  @media (min-width:860px){ #view-galerie #galerieContent{ max-width:900px; margin:0 auto; } }
+  .galerie-cell.selectable{ position:relative; }
+  .galerie-cell.selected img{ outline:3px solid var(--wood); outline-offset:-3px; }
+  .galerie-check{
+    position:absolute; top:6px; right:6px; z-index:2;
+    width:24px; height:24px; border-radius:50%;
+    background:rgba(0,0,0,.5); border:2px solid #fff; color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800;
+  }
+  .galerie-cell.selected .galerie-check{ background:var(--wood); border-color:var(--wood); }
+  .galerie-actionbar{
+    position:fixed; left:0; right:0; bottom:0; z-index:600;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:12px 16px; padding-bottom:calc(12px + env(safe-area-inset-bottom));
+    background:var(--card); border-top:1px solid var(--line); box-shadow:0 -4px 16px rgba(0,0,0,.25);
+  }
+  .galerie-actionbar-count{ font-size:14px; font-weight:700; }
+  #mediaUploadOverlay{
+    position:fixed; inset:0; z-index:1100; background:rgba(0,0,0,.6);
+    display:none; align-items:center; justify-content:center; padding:24px;
+  }
+  #mediaUploadOverlay .mup-box{
+    background:var(--card); border-radius:14px; padding:22px; width:100%; max-width:320px; text-align:center;
+  }
+  #mediaUploadOverlay .mup-title{ font-weight:800; font-size:15px; margin-bottom:6px; }
+  #mediaUploadOverlay .mup-count{ font-size:13px; color:var(--ink-soft); margin-bottom:12px; }
+  #mediaUploadOverlay .mup-track{ height:8px; background:var(--bg-elev); border-radius:8px; overflow:hidden; }
+  #mediaUploadOverlay .mup-fill{ height:100%; width:0%; background:var(--wood); transition:width .2s; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -2946,10 +3024,6 @@
     <button class="btn btn-primary btn-block" style="margin-bottom:8px;" onclick="showAuthCreateForm()">
       <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;display:inline-block;flex-shrink:0;"><path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z"/></svg>
       Créer mon profil
-    </button>
-    <button class="btn btn-outline btn-block" style="margin-bottom:8px;" onclick="openCompanySignup()">
-      <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;display:inline-block;flex-shrink:0;"><path d="M3 21h18M5 21V8l7-4 7 4v13M9 21v-6h6v6"/></svg>
-      Rejoindre une entreprise
     </button>
     <button onclick="openModal('authInfoModal')" style="background:none; border:1px solid var(--line); border-radius:10px; color:var(--ink-soft); font-size:14px; cursor:pointer; margin-bottom:10px; padding:12px 20px; width:100%; display:flex; align-items:center; justify-content:center; gap:8px;">
       <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
@@ -2973,7 +3047,7 @@
     <div class="hint" style="text-align:center; margin-bottom:20px;">Ton identifiant est <b>prenom.nom</b> (ex : julien.dupont), et ton mot de passe est ta <b>date de naissance</b> au format JJMMAAAA.</div>
     <div class="field">
       <label>Identifiant</label>
-      <input type="text" id="authLoginId" placeholder="prenom.nom" autocapitalize="none" autocomplete="username" oninput="adjustLoginPwdKeyboard()">
+      <input type="text" id="authLoginId" placeholder="prenom.nom" autocapitalize="none" autocomplete="username">
     </div>
     <div class="field">
       <label>Mot de passe</label>
@@ -3105,76 +3179,10 @@
   <h1 style="font-size:22px; font-weight:800; margin:0 0 8px;">Entrez votre code entreprise</h1>
   <p style="font-size:14px; color:var(--ink-soft); margin:0 0 22px; max-width:340px; line-height:1.5;">Ce code vous est communiqué par votre patron. Il isole les données de votre entreprise.</p>
   <input type="text" id="companyCodeInput" placeholder="Ex : MONENTREPRISE" autocomplete="off" autocapitalize="characters"
-    style="width:100%; max-width:320px; padding:14px 16px; font-size:18px; font-weight:700; text-align:center; letter-spacing:1px; text-transform:uppercase; border:2px solid var(--line); border-radius:12px; background:var(--card); color:var(--ink); margin-bottom:14px;"
+    style="width:100%; max-width:320px; padding:14px 16px; font-size:18px; font-weight:700; text-align:center; letter-spacing:1px; text-transform:uppercase; border:2px solid var(--line); border-radius:12px; background:var(--card); color:var(--ink); margin-bottom:14px; box-sizing:border-box;"
     onkeydown="if(event.key==='Enter') companyCodeSubmit()">
   <button class="btn btn-primary" style="width:100%; max-width:320px; padding:14px;" onclick="companyCodeSubmit()">Valider</button>
   <div id="companyCodeError" style="color:#E07A63; font-size:13px; margin-top:12px; min-height:18px;"></div>
-</div>
-
-<!-- ══ Écran Développeur : Code Creator ══ -->
-<div id="devCodeCreatorScreen" style="display:none; position:fixed; inset:0; z-index:210; background:var(--bg); flex-direction:column; align-items:center; justify-content:flex-start; padding:24px; overflow-y:auto;">
-  <div id="devCodeCreatorFormWrap" style="width:100%; max-width:340px; padding-top:20px;">
-    <h2 style="text-align:center; margin-bottom:4px;">🛠️ Code Creator</h2>
-    <div class="hint" style="text-align:center; margin-bottom:20px;">Crée une nouvelle entreprise cliente</div>
-    <div class="field"><label>Nom de l'entreprise</label><input type="text" id="devCompanyName" placeholder="Ex : Charpente Dupont"></div>
-    <div class="field"><label>Adresse</label><input type="text" id="devCompanyAddress" placeholder="Ex : 12 rue des Charpentiers, 33000 Bordeaux"></div>
-    <div class="field"><label>Prénom du Patron</label><input type="text" id="devPatronFirstName" placeholder="Ex : Marc"></div>
-    <div class="field"><label>Nom du Patron</label><input type="text" id="devPatronLastName" placeholder="Ex : Dupont"></div>
-    <div class="field">
-      <label>Logo (PNG)</label>
-      <input type="file" id="devCompanyLogo" accept="image/png">
-      <div id="devLogoPreviewWrap" style="display:none; margin-top:8px; text-align:center;"><img id="devLogoPreview" style="max-height:80px; border-radius:8px;"></div>
-    </div>
-    <div class="hint" id="devCodeCreatorError" style="color:var(--danger,#E07A63); display:none; margin-bottom:10px;"></div>
-    <button class="btn btn-primary btn-block" style="margin-top:10px;" id="devCodeCreatorSubmitBtn" onclick="submitCodeCreator()">Générer l'entreprise</button>
-    <button class="btn btn-outline btn-block" style="margin-top:10px;" onclick="exitDevMode()">← Quitter le mode développeur</button>
-  </div>
-  <div id="devCodeCreatorConfirm" style="display:none; width:100%; max-width:340px; text-align:center; padding-top:20px;">
-    <div style="font-size:40px; margin-bottom:10px;">✅</div>
-    <h2 style="margin-bottom:16px;">Entreprise créée !</h2>
-    <div class="calc-result-card" style="margin-bottom:16px; background:var(--card); border-radius:12px; padding:16px;">
-      <div style="font-size:12px; color:var(--ink-soft); margin-bottom:4px;">Code Entreprise</div>
-      <div id="devConfirmCode" style="font-size:24px; font-weight:800; letter-spacing:2px;">—</div>
-    </div>
-    <div class="hint" style="margin-bottom:20px; text-align:left;">Transmets ce code au Patron — il en aura besoin pour créer son profil.</div>
-    <button class="btn btn-primary btn-block" onclick="resetCodeCreatorForm()">Créer une autre entreprise</button>
-    <button class="btn btn-outline btn-block" style="margin-top:10px;" onclick="exitDevMode()">← Quitter le mode développeur</button>
-  </div>
-</div>
-
-<!-- ══ Écran d'inscription : Rejoindre une entreprise ══ -->
-<div id="companySignupScreen" style="display:none; position:fixed; inset:0; z-index:210; background:var(--bg); flex-direction:column; align-items:center; justify-content:flex-start; padding:24px; overflow-y:auto;">
-  <div style="width:100%; max-width:340px; padding-top:20px;">
-    <h2 style="text-align:center; margin-bottom:4px;">Crée mon profil</h2>
-    <div class="hint" style="text-align:center; margin-bottom:20px;">Rejoindre une entreprise existante</div>
-    <div class="field"><label>Prénom</label><input type="text" id="signupFirstName" placeholder="Ex : Julien"></div>
-    <div class="field"><label>Nom</label><input type="text" id="signupLastName" placeholder="Ex : Dupont"></div>
-    <div class="field"><label>Date de naissance</label><input type="date" id="signupBirthDate"></div>
-    <div class="field"><label>Code Entreprise</label><input type="text" id="signupCompanyCode" placeholder="Ex : RW-7K2M9X" autocapitalize="characters" style="text-transform:uppercase;"></div>
-    <div class="field">
-      <label>Rôle</label>
-      <div class="chip-row" id="signupRoleChips">
-        <div class="chip selected" data-role="ouvrier" onclick="setSignupRole(this,'ouvrier')">Ouvrier</div>
-        <div class="chip" data-role="chef_equipe" onclick="setSignupRole(this,'chef_equipe')">Chef d'équipe</div>
-        <div class="chip" data-role="conducteur" onclick="setSignupRole(this,'conducteur')">Conducteur</div>
-        <div class="chip" data-role="comptable" onclick="setSignupRole(this,'comptable')">Comptable</div>
-        <div class="chip" data-role="patron" onclick="setSignupRole(this,'patron')">Patron</div>
-      </div>
-    </div>
-    <div class="field">
-      <label>Mot de passe (8 chiffres)</label>
-      <div style="position:relative;">
-        <input type="password" id="signupPwd" inputmode="numeric" maxlength="8" placeholder="Ex : 47291835" style="padding-right:44px;">
-        <button type="button" onclick="toggleSignupPwdVisibility()" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; padding:6px; color:var(--ink-soft);">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
-        </button>
-      </div>
-      <div class="hint" style="margin-top:4px;">8 chiffres, différents de ta date de naissance</div>
-    </div>
-    <div class="hint" id="signupError" style="color:var(--danger,#E07A63); display:none; margin-bottom:10px;"></div>
-    <button class="btn btn-primary btn-block" style="margin-top:10px;" id="signupSubmitBtn" onclick="submitCompanySignup()">Créer mon profil</button>
-    <button class="btn btn-outline btn-block" style="margin-top:10px;" onclick="closeCompanySignup()">← Retour</button>
-  </div>
 </div>
 
 <div id="app">
@@ -3263,17 +3271,15 @@
       <button class="nav-btn" data-view="couverture" onclick="goTo('couverture')">
         <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg></span><span class="lbl">Couverture</span>
       </button>
-      <button class="nav-btn" data-view="photos" onclick="goTo('photos')">
-        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7l1.6-2.5h4.8L16 7"/><circle cx="12" cy="13.5" r="3.4"/></svg></span><span class="lbl">Photos</span>
+      <!-- MODULE — Galerie : onglet photos global synchronisé (remplace Photos) -->
+      <button class="nav-btn" data-view="galerie" onclick="goTo('galerie')">
+        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></span><span class="lbl">Galerie</span>
       </button>
       <button class="nav-btn" data-view="scanner" onclick="openQRScanner()">
         <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg></span><span class="lbl">Scanner</span>
       </button>
       <button class="nav-btn" data-view="zinc" onclick="goTo('zinc')">
         <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 1 0-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-2.1 2.1-2.1-2.1z"/></svg></span><span class="lbl">Zinc</span>
-      </button>
-      <button class="nav-btn" data-view="depot" onclick="goTo('depot')">
-        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14M5 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4"/><path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8"/><path d="M9 12h6M9 16h4"/></svg></span><span class="lbl">Dépôt</span>
       </button>
       <!-- MODULE — Magasin : bouton nav (accroche unique dans la barre) -->
       <button class="nav-btn" data-view="magasin" onclick="goTo('magasin')">
@@ -3286,6 +3292,11 @@
       <!-- MODULE — SuiviHeures : bouton nav (patron / dev uniquement) -->
       <button class="nav-btn" data-view="suivi" id="suiviNavBtn" onclick="goTo('suivi')" style="display:none;">
         <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16M8 16v-5M12 16V8M16 16v-3"/></svg></span><span class="lbl">Suivi</span>
+      </button>
+
+      <!-- MODULE — DevAccess : onglet DEV, visible si is_dev=true (flag dynamique) -->
+      <button class="nav-btn" id="devNavBtn" style="display:none;" onclick="devAccessOpenPanel()">
+        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6l-5 6 5 6M16 6l5 6-5 6M13 4l-2 16"/></svg></span><span class="lbl">DEV</span>
       </button>
 
       <button class="nav-btn" data-view="alertes-conducteur" id="navBtnAlertesConducteur" style="display:none;" onclick="goTo('alertes-conducteur')">
@@ -4457,31 +4468,13 @@
       <button class="btn btn-primary btn-block" style="margin-top:10px;" onclick="openAddTileModal()">+ Ajouter une tuile</button>
     </section>
 
-    <!-- VUE PHOTOS -->
-    <section class="view" id="view-photos">
-      <!-- Galerie : liste des chantiers (dossiers) -->
-      <div id="photosGalleryRoot">
-        <div class="view-heading">Chantiers</div>
-        <div id="photosFolderList"></div>
+    <!-- MODULE — Galerie : vue photos globale par chantier (remplace Photos) -->
+    <section class="view" id="view-galerie">
+      <div class="page-title" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <span>📸 Galerie</span>
+        <button id="galerieSelectBtn" class="btn btn-outline btn-sm" onclick="galerieToggleSelectMode()">Sélectionner</button>
       </div>
-
-      <!-- Dossier d'un chantier : grille de photos -->
-      <div id="photosFolderView" style="display:none;">
-        <button class="btn btn-outline" style="margin-bottom:12px;" onclick="closePhotosFolder()">← Retour aux chantiers</button>
-        <div class="section-title" id="photosFolderTitle"></div>
-        <div class="card" id="photosFolderUploadZone">
-          <input type="file" id="photosCameraInput" accept="image/*" capture="environment" style="display:none;" onchange="addPhotoFromGallery(this)">
-          <input type="file" id="photosBatchGalleryInput" accept="image/*" multiple style="display:none;" onchange="addPhotoFromGallery(this)">
-          <div class="row-actions" style="margin-top:0;">
-            <button class="btn btn-outline" onclick="openCameraCapture('photosCameraInput')"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;display:inline-block;flex-shrink:0;"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7l1.6-2.5h4.8L16 7"/><circle cx="12" cy="13.5" r="3.4"/></svg> Appareil photo</button>
-            <button class="btn btn-primary" onclick="document.getElementById('photosBatchGalleryInput').click()"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;display:inline-block;flex-shrink:0;"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 16l-5-5-4 4-2-2-5 5"/></svg> Galerie (multiple)</button>
-          </div>
-        </div>
-        <div class="card" id="photosGridDropZone">
-          <div class="hint" id="photosFolderEmptyHint">Aucune photo pour ce chantier.</div>
-          <div class="photo-grid" id="photosFolderGrid"></div>
-        </div>
-      </div>
+      <div id="galerieContent"><div class="hint" style="text-align:center;padding:30px 0;">Chargement…</div></div>
     </section>
 
     <!-- VUE ZINC -->
@@ -4778,69 +4771,6 @@
       <div id="alertesMemberList"></div>
     </section>
 
-    <section class="view" id="view-depot">
-      <div class="page-title">
-        <div>
-          <h1 id="depotTitle" style="margin:0;">Dépôt</h1>
-        </div>
-        <div style="display:flex;gap:8px;">
-          <button class="btn btn-outline btn-sm" id="depotManageBtn" onclick="openDepotManage()" style="display:none;">
-            ⚙️ Gérer
-          </button>
-          <button id="depotNotifBtn" onclick="openDepotNotifs()" style="display:none;position:relative;background:transparent;border:1.5px solid var(--line);border-radius:20px;padding:5px 10px;cursor:pointer;font-size:18px;">
-            🔔<span id="depotNotifBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:#E05555;color:#fff;font-size:10px;font-weight:800;border-radius:20px;padding:1px 5px;min-width:16px;text-align:center;"></span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Statut sync -->
-      <div id="depotSyncStatus" style="font-size:12px;color:var(--ink-soft);text-align:center;padding:4px 0;margin-bottom:6px;display:none;"></div>
-
-      <!-- ACCORDÉON MACHINES -->
-      <div class="accordion-section open" id="depotAccordionMachines" style="margin-bottom:8px;">
-        <div class="accordion-header" onclick="toggleDepotAccordion('Machines')"
-          style="padding:12px 14px; background:var(--card); border-radius:12px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; font-weight:700;">
-          <span>🔧 Machines</span>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <button onclick="event.stopPropagation(); pullDepotFromSupabase().then(ok=>{ if(ok) renderDepot(); showToast('Actualisé'); })"
-              style="background:transparent;border:none;font-size:12px;color:var(--ink-soft);cursor:pointer;padding:2px 6px;">🔄</button>
-            <span id="depotMachinesArrow" class="accordion-arrow">▾</span>
-          </div>
-        </div>
-        <div id="depotMachinesBody" style="padding-top:8px;">
-          <div id="depotBorrowList"></div>
-          <div id="depotAvailList" style="margin-top:4px;"></div>
-        </div>
-      </div>
-
-      <!-- ACCORDÉON DISPO CAMION -->
-      <div class="accordion-section" id="depotAccordionCamion" style="margin-bottom:8px;">
-        <div class="accordion-header" onclick="toggleDepotAccordion('Camion')"
-          style="padding:12px 14px; background:var(--card); border-radius:12px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; font-weight:700;">
-          <span>🚐 Dispo Camion</span>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <button onclick="event.stopPropagation(); renderDispoCamion()" style="background:transparent;border:none;font-size:12px;color:var(--ink-soft);cursor:pointer;padding:2px 6px;">🔄</button>
-            <span id="depotCamionArrow" class="accordion-arrow">▾</span>
-          </div>
-        </div>
-        <div id="depotCamionBody" style="display:none;padding-top:8px;">
-          <div id="dispoCamionList"></div>
-        </div>
-      </div>
-
-      <!-- Aide QR porte -->
-      <div id="depotDoorHint" style="display:none; background:var(--card); border-radius:12px; padding:10px 14px; margin-bottom:12px; border-left:3px solid var(--wood); font-size:12px; line-height:1.6; color:var(--ink-soft);">
-        🔄 La liste se synchronise automatiquement. Ouvre l'onglet Dépôt sur n'importe quel téléphone pour voir qui a quoi en temps réel.
-      </div>
-
-
-      <!-- ── Dépôt vide (ID connu, pas encore de machines) ── -->
-      <div id="depotEmpty" class="empty" style="display:none;">
-        <div class="icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 8h14M5 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4"/><path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8"/></svg></div>
-        <h3>Dépôt vide</h3>
-        <p>Appuie sur + pour ajouter les machines.</p>
-      </div>
-    </section>
 
     <!-- ═══════════════════════════════════════════════════════════════
          MODULE — Magasin (début)  ·  onglet 100% isolé
@@ -4996,6 +4926,10 @@
         <div class="ce-field">
           <label>Heures</label>
           <input type="number" id="comptaEditHours" step="0.5" min="0" inputmode="decimal" placeholder="Ex : 7.5">
+        </div>
+        <div class="ce-field">
+          <label>Type de journée</label>
+          <select id="comptaEditTypeJournee" class="fiche-type-journee"></select>
         </div>
         <div class="ce-field">
           <label>Chantier</label>
@@ -6940,12 +6874,31 @@ function mergeArrayById(localArr, remoteArr){
   const localMap = new Map(localList.map(it => [it.id, it]));
   const remoteMap = new Map(remoteList.map(it => [it.id, it]));
   const ids = new Set([...localMap.keys(), ...remoteMap.keys()]);
+  // Union dédupliquée de deux listes de médias/documents (par id/url/data/name).
+  const mergeMedia = (a, b) => {
+    const out = [], seen = new Set();
+    const keyOf = (m) => (m && (m.id || m.url || m.data || m.name)) || JSON.stringify(m);
+    [ ...(Array.isArray(a)?a:[]), ...(Array.isArray(b)?b:[]) ].forEach(m => {
+      const k = keyOf(m); if(seen.has(k)) return; seen.add(k); out.push(m);
+    });
+    return out;
+  };
   return [...ids].map(id => {
     const local = localMap.get(id);
     const remote = remoteMap.get(id);
     if(!local) return remote;
     if(!remote) return local;
-    return Object.assign({}, remote, local);
+    const merged = Object.assign({}, remote, local);
+    // [fix-docs] Documents et médias : TOUJOURS l'union des deux versions.
+    // Sans ça, la version serveur (allégée par stripBlobsForSync) ou celle
+    // d'un appareil qui ne les a pas écrasait les documents → disparition.
+    if('documents' in local || 'documents' in remote){
+      merged.documents = mergeMedia(local.documents, remote.documents);
+    }
+    if('sharedMedia' in local || 'sharedMedia' in remote){
+      merged.sharedMedia = mergeMedia(local.sharedMedia, remote.sharedMedia);
+    }
+    return merged;
   });
 }
 
@@ -7067,7 +7020,7 @@ const SUPA_KEY = 'sb_publishable_KvwO_y5o19TOor2EHi0SdA_iVB7n8NJ';
    un splash bloque l'app. Le code est visible/modifiable dans l'onglet Dev
    (changer le code = renommer l'entreprise : migre les données existantes).
    Retrait (pour revenir à une app mono-entreprise) : supprimer ce bloc,
-   le splash #companySplash + son CSS, et l'accroche companyCodeInit().
+   le splash #companySplash + son CSS, et l'accroche companyGetCode() dans init.
    ═══════════════════════════════════════════════════════════════════ */
 const COMPANY_CODE_KEY = 'rwood_company_code'; // clé NON préfixée (pivot)
 let COMPANY_CODE = null;
@@ -7097,11 +7050,10 @@ function companyPrefix(){
   const _set = proto.setItem.bind(proto);
   const _del = proto.removeItem.bind(proto);
   const mapKey = (key) => {
-    // Ne pas préfixer : la clé pivot elle-même, et tout ce qui n'est pas rwood-*
-    if(key === COMPANY_CODE_KEY) return key;
+    if(key === COMPANY_CODE_KEY) return key;   // clé pivot : jamais préfixée
     const pfx = companyPrefix();
-    if(!pfx) return key;                 // pas de code encore : neutre
-    if(key.startsWith(pfx)) return key;  // déjà préfixé
+    if(!pfx) return key;                        // pas de code encore : neutre
+    if(String(key).startsWith(pfx)) return key; // déjà préfixé
     if(String(key).startsWith('rwood')) return pfx + key; // rwood-* / rwood_*
     return key;
   };
@@ -7110,16 +7062,7 @@ function companyPrefix(){
   localStorage.removeItem = (k)   => _del(mapKey(k));
 })();
 
-/* ── Préfixe un user_id Supabase par le code entreprise ──
-   Utilisé par supaFetch pour cloisonner la table rwood_sync. */
-function companyScopeUserId(userId){
-  const pfx = companyPrefix();
-  if(!pfx || !userId) return userId;
-  if(String(userId).startsWith(pfx)) return userId;
-  return pfx + userId;
-}
-/* Applique le préfixe à une URL de rwood_sync (?user_id=eq.XXX) et à un
-   corps JSON POST ({user_id:"XXX"}). Transparent si pas de code. */
+/* ── Préfixe les user_id Supabase (cloisonne la table rwood_sync) ── */
 function companyScopePath(path){
   const pfx = companyPrefix();
   if(!pfx) return path;
@@ -7141,48 +7084,30 @@ function companyScopeBody(body){
   }catch(e){}
   return body;
 }
-/* ═══ MODULE — CompanyCode  ·  fin ═══ */
 
-/* ── UI & cycle de vie du code entreprise ─────────────────────────── */
+/* ── UI & cycle de vie ── */
 function companyShowSplash(){
   const sp = document.getElementById('companySplash');
   const app = document.getElementById('app');
   if(app) app.style.display = 'none';
   const auth = document.getElementById('authScreen');
   if(auth) auth.style.display = 'none';
-  if(sp){ sp.style.display = 'flex'; }
+  if(sp) sp.style.display = 'flex';
   setTimeout(() => { const i = document.getElementById('companyCodeInput'); if(i) i.focus(); }, 100);
 }
 
-async function companyCodeSubmit(){
+/* Code caché réservé au développeur — donne accès direct au mode Dev */
+const DEV_COMPANY_CODE = 'RP030698';
+
+function companyCodeSubmit(){
   const input = document.getElementById('companyCodeInput');
   const errEl = document.getElementById('companyCodeError');
-  const btn   = document.querySelector('#companySplash .btn-primary');
-  const code  = companyNormalize(input ? input.value : '');
-  if(code.length < 3){
-    if(errEl) errEl.textContent = 'Code trop court (3 caractères minimum).';
-    return;
-  }
-  if(errEl) errEl.textContent = '';
-  if(btn){ btn.disabled = true; btn.textContent = 'Vérification…'; }
+  const code = companyNormalize(input ? input.value : '');
+  if(code.length < 3){ if(errEl) errEl.textContent = 'Code trop court (3 caractères minimum).'; return; }
 
-  // Vérifie le code contre la table companies (RWOOD Log multi-tenant)
-  try{
-    const res = await fetch(SUPA_URL + '/rest/v1/rpc/check_company_code', {
-      method: 'POST',
-      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ p_code: code })
-    });
-    if(!res.ok) throw new Error('Erreur réseau (' + res.status + ')');
-    const companyId = await res.json();
-    if(!companyId){
-      if(errEl) errEl.textContent = 'Code entreprise invalide. Contactez votre patron.';
-      if(btn){ btn.disabled = false; btn.textContent = 'Valider'; }
-      return;
-    }
-    // Code valide : stocke et lance
+  // ── Code Dev caché : accès direct mode développeur ────────────────
+  if(code === DEV_COMPANY_CODE){
     try{ localStorage.setItem(COMPANY_CODE_KEY, code); }catch(e){}
-    try{ localStorage.setItem('rwood_company_id', companyId); }catch(e){}
     COMPANY_CODE = code;
     let hasData = false;
     try{ hasData = !!localStorage.getItem('rwood-data'); }catch(e){}
@@ -7191,45 +7116,47 @@ async function companyCodeSubmit(){
     if(sp) sp.style.display = 'none';
     const app = document.getElementById('app');
     if(app) app.style.display = '';
+    // Ouvre le panneau Dev directement après rechargement
+    sessionStorage.setItem('rwoodlog_open_dev_on_load', '1');
     location.reload();
-  } catch(e){
-    if(errEl) errEl.textContent = e.message || 'Erreur lors de la vérification.';
-    if(btn){ btn.disabled = false; btn.textContent = 'Valider'; }
+    return;
   }
+
+  try{ localStorage.setItem(COMPANY_CODE_KEY, code); }catch(e){}
+  COMPANY_CODE = code;
+  // Première fois pour CE code sur cet appareil ? → démarrage vierge.
+  let hasData = false;
+  try{ hasData = !!localStorage.getItem('rwood-data'); }catch(e){}
+  if(!hasData) companyInitEmpty();
+  location.reload();
 }
 
-/* Initialise des stores VIDES pour une nouvelle entreprise (aucune trace
-   de l'entreprise d'origine). Écrit directement la clé scoppée. */
+/* Stores VIDES pour une nouvelle entreprise (aucune trace d'origine). */
 function companyInitEmpty(){
   const empty = {
     sites: [], attendance: {}, workers: [], contacts: [],
-    stock: [], itineraires: [], notes: [], depotMachines: [],
-    settings: {}
+    stock: [], itineraires: [], notes: [], depotMachines: [], settings: {}
   };
   try{ localStorage.setItem('rwood-data', JSON.stringify(empty)); }catch(e){}
 }
 
-/* Onglet Dev : renommer l'entreprise = migrer les données scoppées
-   de l'ancien code vers le nouveau (on garde tout, on change l'étiquette). */
+/* Onglet Dev : renommer l'entreprise = migrer les données scoppées. */
 function companyRenameFromDev(){
   const cur = companyGetCode();
   const nv = companyNormalize(prompt('Nouveau code entreprise (les données actuelles seront conservées et migrées) :', cur || ''));
   if(!nv || nv.length < 3){ if(nv!==null) showToast('Code trop court'); return; }
   if(nv === cur){ showToast('Code inchangé'); return; }
-  // Migration : recopie toutes les clés localStorage cur__* vers nv__*
   const oldPfx = cur ? (cur + '__') : '';
   const newPfx = nv + '__';
   try{
     const rawGet = Object.getPrototypeOf(localStorage).getItem.bind(localStorage);
     const rawSet = Object.getPrototypeOf(localStorage).setItem.bind(localStorage);
     const rawDel = Object.getPrototypeOf(localStorage).removeItem.bind(localStorage);
-    // Collecte les clés de l'ancienne entreprise
     const toMigrate = [];
     for(let i=0;i<localStorage.length;i++){
       const k = localStorage.key(i);
       if(oldPfx && k.startsWith(oldPfx)) toMigrate.push(k);
     }
-    // Recopie cur__X → nv__X puis supprime l'ancienne
     toMigrate.forEach(k => {
       const bare = k.slice(oldPfx.length);
       const v = rawGet(k);
@@ -7243,11 +7170,12 @@ function companyRenameFromDev(){
   setTimeout(() => location.reload(), 600);
 }
 
-/* Affiche le code courant dans l'onglet Dev (accroche appelée au rendu dev). */
 function companyRefreshDevLabel(){
   const el = document.getElementById('devCompanyCodeLabel');
   if(el) el.textContent = companyGetCode() || '(aucun)';
 }
+/* ═══ MODULE — CompanyCode  ·  fin ═══ */
+
 
 // Indicateur visuel de sync dans le header
 let syncIndicatorEl = null;
@@ -7305,13 +7233,21 @@ async function syncPush(){
   try{
     showSyncStatus('syncing');
 
-    // RÈGLE STRICTE : chaque device n'envoie QUE son propre ouvrier + sa propre attendance.
-    // Aucune donnée d'un autre ouvrier ne transite vers Supabase via ce device,
-    // quelle que soit la liste data.workers locale.
+    // RÈGLE : un simple ouvrier n'envoie QUE son propre pointage (confidentialité).
+    // MAIS un chef d'équipe / conducteur saisit les heures de son équipe : il doit
+    // donc pouvoir pousser les pointages de TOUS les ouvriers qu'il a saisis, sinon
+    // les heures d'un ouvrier saisies par le chef ne remontent jamais au Suivi
+    // (bug : baptiste.dejouhannet enregistré par le chef, invisible dans le Suivi).
     const myWorkerId = data.settings.myProfile && data.settings.myProfile.workerId;
+    const _myRole = data.settings.myProfile && data.settings.myProfile.role;
+    const _canPushTeam = (_myRole === 'chef' || _myRole === 'conducteur' || _myRole === 'patron');
     const stripped = stripBlobsForSync(data);
 
-    if(myWorkerId){
+    if(_canPushTeam){
+      // Chef/conducteur/patron : on pousse TOUS les pointages saisis sur cet
+      // appareil (toute l'équipe), sans réduire chaque jour à un seul ouvrier.
+      // (stripped.workers et stripped.attendance sont conservés tels quels.)
+    } else if(myWorkerId){
       // Garder uniquement MON ouvrier dans workers[]
       stripped.workers = (stripped.workers || []).filter(w => w.id === myWorkerId);
       // Garder uniquement les pointages où MON ouvrier est présent
@@ -7414,12 +7350,11 @@ function refreshCurrentView(){
   const renders = {
     chantiers: ()=>renderSites(),
     stock: ()=>renderStock(),
-    depot: ()=>renderDepot(),
     heures: ()=>renderHeures(),
     agenda: ()=>renderAgenda(),
     contacts: ()=>renderContacts(),
     couverture: ()=>renderCouverture(),
-    photos: ()=>renderPhotosGallery(),
+    galerie: ()=>galerieRender(),
     zinc: ()=>renderZincGallery(),
   };
   if(renders[viewId]) renders[viewId]();
@@ -7712,11 +7647,9 @@ function updateFab(view, siteId){
     return;
   }
 
-  // 3) Dépôt / Stock : l'action est gérée par leurs propres renders
-  //    (renderDepot / renderStock réassignent fab.onclick puis appellent
-  //    updateFab indirectement). On laisse le render décider : ici on ne
-  //    fait qu'assurer la visibilité par défaut.
-  if(view === 'depot' || view === 'stock'){
+  // 3) Stock : l'action est gérée par son propre render (renderStock
+  //    réassigne fab.onclick). On assure la visibilité par défaut.
+  if(view === 'stock'){
     fab.style.display = 'block';
     return;
   }
@@ -7730,10 +7663,7 @@ function updateFab(view, siteId){
 
 function goTo(viewName, siteId){
   if(viewName === 'scanner'){ openQRScanner(); return; }
-  if(viewName === 'depot'){
-    // Le pull Supabase est déclenché APRÈS activation de la vue (via views map)
-    setTimeout(() => pullDepotFromSupabase().then(ok => { if(ok) renderDepot(); }), 50);
-  }
+  if(viewName === 'depot'){ goTo('chantiers'); return; } // Dépôt supprimé : redirection de sécurité
   if(viewName === 'magasin'){ // MODULE — Magasin : pull immédiat à l'ouverture
     setTimeout(() => magasinPull().then(ok => { if(ok) magasinRender(); }), 50);
   }
@@ -7759,6 +7689,7 @@ function goTo(viewName, siteId){
     agenda:      ['Agenda', 'Tâches par chantier'],
     couverture:  ['Couverture', 'Catalogue de tuiles et documentation technique'],
     photos:      ['Photos', 'Galerie photo par chantier'],
+    galerie:     ['Galerie', 'Photos partagées par chantier'],
     zinc:        ['Zinc', 'Pliages et profils par chantier'],
     'zone-chantier': ['Zone Chantier', 'Chantiers en cours — itinéraire depuis le dépôt'],
 
@@ -7825,14 +7756,18 @@ function goTo(viewName, siteId){
   if(viewName === 'calcul') renderCalcul();
   if(viewName === 'agenda') renderAgenda();
   if(viewName === 'couverture') renderCouverture();
-  if(viewName === 'photos') renderPhotosGallery();
+  if(viewName === 'galerie') galerieRender(); // MODULE — Galerie
+  else if(typeof _galerieSelectMode !== 'undefined' && _galerieSelectMode){
+    // Quitter la galerie réinitialise le mode sélection
+    _galerieSelectMode = false; _galerieSelected.clear();
+    const gsb = document.getElementById('galerieSelectBtn'); if(gsb) gsb.textContent = 'Sélectionner';
+  }
   if(viewName === 'zinc') renderZincGallery();
   if(viewName === 'zone-chantier'){
     if(typeof zoneAccessAllowed === 'function' && !zoneAccessAllowed()){ goTo('chantiers'); return; } // MODULE — ZoneAccess
     renderZoneChantier();
   }
 
-  if(viewName === 'depot') renderDepot();
   if(viewName === 'magasin') magasinRender(); // MODULE — Magasin
   if(viewName === 'notes') notesRender(); // MODULE — Notes
   if(viewName === 'suivi'){ // MODULE — SuiviHeures : réservé patron/dev
@@ -7967,12 +7902,30 @@ function renderSites(){
     container.innerHTML = `<div class="empty"><div class="icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;display:inline-block;flex-shrink:0;"><path d="M5 21V5"/><path d="M5 5l14 4"/><path d="M19 9v3"/><path d="M19 12l-3 2"/><path d="M2 21h10"/></svg></div><h3>Aucun chantier</h3><p>Touche le bouton + pour créer ton premier chantier.</p></div>`;
     return;
   }
-  // sort: brouillon first (à traiter), puis en-cours, a-faire, termine
+  // Tri par défaut : par ZONE (alphanumérique 1A, 1B, 2, 3…), puis statut,
+  // puis nom. Actif en permanence — le filtrage ci-dessous conserve cet ordre.
   const order = {'brouillon':-1, 'en-cours':0, 'a-faire':1, 'termine':2};
-  const sorted = [...data.sites].sort((a,b)=> (order[a.status]??9)-(order[b.status]??9));
+  const sorted = [...data.sites].sort((a,b) => {
+    const zoneCmp = _compareZones(a.trajetZone, b.trajetZone);
+    if(zoneCmp !== 0) return zoneCmp;
+    const statusCmp = (order[a.status]??9) - (order[b.status]??9);
+    if(statusCmp !== 0) return statusCmp;
+    return (a.name||'').localeCompare(b.name||'', 'fr');
+  });
   const myRole = data.settings.myProfile && data.settings.myProfile.role;
 
-  container.innerHTML = sorted.map(site => `
+  // MODULE — SitesFilter : barre recherche + filtres zone/chef, puis filtrage cumulé
+  const filterBarHtml = _sitesFilterBarHtml(sorted);
+  const visible = _sitesApplyFilters(sorted);
+
+  if(!visible.length){
+    container.innerHTML = filterBarHtml
+      + '<div class="empty" style="padding:40px 20px;"><div class="icon" style="font-size:38px;">🏜️</div><h3>Aucun chantier ne correspond à vos critères</h3><p>Modifie ta recherche ou tes filtres.</p></div>';
+    _sitesFilterRestoreFocus();
+    return;
+  }
+
+  container.innerHTML = filterBarHtml + visible.map(site => `
     <div class="card" style="${site.color ? `background:${cardTintBackground(site.color)};` : ''}" onclick="goTo('detail', '${site.id}')">
       <div class="card-row">
         <div>
@@ -7991,7 +7944,321 @@ function renderSites(){
       ` : ''}
     </div>
   `).join('');
+  _sitesFilterRestoreFocus();
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   MODULE — SitesFilter  ·  début
+   Recherche texte (nom/adresse) + filtre zone + filtre chef assigné,
+   cumulés (ET). État conservé en mémoire pour survivre au re-render.
+   Retrait : supprimer ce bloc + les 3 lignes [sitesfilter] dans
+   renderSites (filterBarHtml / _sitesApplyFilters / restoreFocus).
+   ═══════════════════════════════════════════════════════════════════ */
+const _sitesFilter = { text:'', zone:'', chef:'' };
+
+/* Compare deux zones de façon alphanumérique : la partie chiffre d'abord
+   (numérique, donc 2 < 10), puis la lettre éventuelle (1A < 1B).
+   Les chantiers sans zone sont classés en dernier. */
+function _compareZones(za, zb){
+  const a = String(za==null?'':za).trim();
+  const b = String(zb==null?'':zb).trim();
+  if(!a && !b) return 0;
+  if(!a) return 1;   // sans zone → à la fin
+  if(!b) return -1;
+  const parse = (z) => {
+    const m = z.match(/^(\d+)\s*([A-Za-z]*)$/);
+    if(m) return { num: parseInt(m[1], 10), suf: m[2].toUpperCase() };
+    return { num: Number.POSITIVE_INFINITY, suf: z.toUpperCase() }; // format inattendu → après les numérotées
+  };
+  const pa = parse(a), pb = parse(b);
+  if(pa.num !== pb.num) return pa.num - pb.num;
+  return pa.suf.localeCompare(pb.suf);
+}
+
+/* Zones réellement présentes dans les chantiers (triées). */
+function _sitesFilterZones(sites){
+  const set = new Set();
+  sites.forEach(s => { if(s.trajetZone) set.add(String(s.trajetZone)); });
+  return Array.from(set).sort(_compareZones);
+}
+/* Chefs assignés réellement présents (nom). */
+function _sitesFilterChefs(sites){
+  const set = new Set();
+  sites.forEach(s => { if(s.assignedChefName) set.add(s.assignedChefName); });
+  return Array.from(set).sort((a,b) => a.localeCompare(b));
+}
+
+/* Applique les 3 critères cumulés. */
+function _sitesApplyFilters(sites){
+  const q = (_sitesFilter.text || '').toLowerCase().trim();
+  return sites.filter(s => {
+    if(q){
+      const hay = ((s.name||'') + ' ' + (s.address||'')).toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    if(_sitesFilter.zone && String(s.trajetZone||'') !== _sitesFilter.zone) return false;
+    if(_sitesFilter.chef && (s.assignedChefName||'') !== _sitesFilter.chef) return false;
+    return true;
+  });
+}
+
+/* Barre HTML : recherche + 2 selects, alimentés dynamiquement. */
+function _sitesFilterBarHtml(sites){
+  const zones = _sitesFilterZones(sites);
+  const chefs = _sitesFilterChefs(sites);
+  const zoneOpts = '<option value="">Toutes les zones</option>'
+    + zones.map(z => `<option value="${escapeHtml(z)}"${_sitesFilter.zone===z?' selected':''}>Zone ${escapeHtml(z)}</option>`).join('');
+  const chefOpts = '<option value="">Toutes les assignations</option>'
+    + chefs.map(c => `<option value="${escapeHtml(c)}"${_sitesFilter.chef===c?' selected':''}>${escapeHtml(c)}</option>`).join('');
+  // Les selects zone/chef ne s'affichent que s'il y a matière à filtrer
+  const showZone = zones.length > 0;
+  const showChef = chefs.length > 0;
+  return `
+    <div class="sites-filter-bar">
+      <input type="text" id="search-chantiers" class="sites-filter-search" placeholder="🔍 Rechercher un chantier..."
+        value="${escapeHtml(_sitesFilter.text)}" oninput="_sitesFilterOnText(this.value)">
+      ${(showZone || showChef) ? `<div class="sites-filter-selects">
+        ${showZone ? `<select id="filter-zone" onchange="_sitesFilterOnZone(this.value)">${zoneOpts}</select>` : ''}
+        ${showChef ? `<select id="filter-assignation" onchange="_sitesFilterOnChef(this.value)">${chefOpts}</select>` : ''}
+      </div>` : ''}
+    </div>`;
+}
+
+/* Handlers : mettent à jour l'état + re-render (sans reconstruire la barre
+   pour le texte, afin de garder le focus/curseur pendant la frappe). */
+let _sitesFilterFocusFlag = false;
+function _sitesFilterOnText(v){ _sitesFilter.text = v; _sitesFilterFocusFlag = true; renderSites(); }
+function _sitesFilterOnZone(v){ _sitesFilter.zone = v; renderSites(); }
+function _sitesFilterOnChef(v){ _sitesFilter.chef = v; renderSites(); }
+
+/* Rend le focus au champ de recherche après re-render (frappe continue). */
+function _sitesFilterRestoreFocus(){
+  if(!_sitesFilterFocusFlag) return;
+  _sitesFilterFocusFlag = false;
+  const el = document.getElementById('search-chantiers');
+  if(el){
+    el.focus();
+    const val = el.value; el.value = ''; el.value = val; // curseur en fin
+  }
+}
+/* ═══ MODULE — SitesFilter  ·  fin ═══ */
+
+/* ═══════════════════════════════════════════════════════════════════
+   MODULE — Galerie  ·  début
+   Galerie photo globale : agrège les photos partagées (sharedMedia,
+   déjà uploadées sur le bucket rwood-shared et synchronisées par
+   SyncAllSites) de TOUS les chantiers. Regroupées par chantier, triées
+   par zone (comme la liste), photos récentes en premier. Auteur + date
+   sous chaque miniature, clic = lightbox plein écran.
+   "Temps réel" : polling léger quand la vue est ouverte (l'app n'utilise
+   pas les websockets Supabase ; SyncAllSites tire déjà les nouvelles
+   photos, la galerie se rafraîchit toute seule).
+   Retrait : supprimer ce bloc + l'onglet #galerie + le routage galerie.
+   ═══════════════════════════════════════════════════════════════════ */
+let _galerieTimer = null;
+let _galerieSelectMode = false;
+const _galerieSelected = new Set(); // clés "siteId|mediaId"
+
+/* Collecte toutes les photos partagées, groupées par chantier. */
+function _galerieCollect(){
+  const groups = [];
+  (data.sites || []).forEach(site => {
+    const photos = (site.sharedMedia || [])
+      .filter(m => m && (m.type === 'photo' || (m.mimeType||'').startsWith('image/')) && m.url)
+      .sort((a,b) => new Date(b.uploadedAt||0) - new Date(a.uploadedAt||0)); // récent d'abord
+    if(photos.length){
+      groups.push({ site, photos });
+    }
+  });
+  // Tri des chantiers par zone (même logique que la liste), puis par nom
+  groups.sort((a,b) => {
+    const zc = (typeof _compareZones === 'function') ? _compareZones(a.site.trajetZone, b.site.trajetZone) : 0;
+    if(zc !== 0) return zc;
+    return (a.site.name||'').localeCompare(b.site.name||'', 'fr');
+  });
+  return groups;
+}
+
+/* Formate "Par Prénom - Aujourd'hui à 14h32". */
+function _galerieCaption(m){
+  const who = (m.uploadedBy || '').trim().split(' ')[0] || 'Inconnu';
+  let when = '';
+  if(m.uploadedAt){
+    const d = new Date(m.uploadedAt);
+    const now = new Date();
+    const sameDay = d.toDateString() === now.toDateString();
+    const y = new Date(now); y.setDate(now.getDate()-1);
+    const isYesterday = d.toDateString() === y.toDateString();
+    const hh = String(d.getHours()).padStart(2,'0');
+    const mm = String(d.getMinutes()).padStart(2,'0');
+    if(sameDay) when = `Aujourd'hui à ${hh}h${mm}`;
+    else if(isYesterday) when = `Hier à ${hh}h${mm}`;
+    else when = d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'}) + ` à ${hh}h${mm}`;
+  }
+  return `Par ${escapeHtml(who)}${when ? ' · ' + when : ''}`;
+}
+
+function galerieRender(){
+  const root = document.getElementById('galerieContent');
+  if(!root) return;
+  const groups = _galerieCollect();
+
+  if(!groups.length){
+    root.innerHTML = '<div class="empty" style="padding:40px 20px;"><div class="icon" style="font-size:38px;">📸</div><h3>Aucune photo partagée</h3><p>Ajoute des photos depuis l\'onglet Média d\'un chantier ; elles apparaîtront ici pour toute l\'équipe.</p></div>';
+    _galerieStartPolling();
+    return;
+  }
+
+  root.innerHTML = groups.map(g => `
+    <div class="galerie-group">
+      <div class="galerie-group-head">🏗️ ${escapeHtml(g.site.name)}${g.site.trajetZone?`<span class="galerie-zone">Zone ${escapeHtml(String(g.site.trajetZone))}</span>`:''}</div>
+      <div class="galerie-grid">
+        ${g.photos.map(m => {
+          const key = g.site.id + '|' + m.id;
+          const checked = _galerieSelected.has(key);
+          const onclick = _galerieSelectMode
+            ? `galerieTogglePhoto('${key}')`
+            : `galerieOpenLightbox('${escapeHtml(m.url)}','${escapeHtml((_galerieCaption(m)+' — '+(g.site.name||'')).replace(/'/g,'&#39;'))}')`;
+          return `
+          <div class="galerie-cell${_galerieSelectMode?' selectable':''}${checked?' selected':''}" onclick="${onclick}">
+            ${_galerieSelectMode ? `<div class="galerie-check">${checked?'✓':''}</div>` : ''}
+            <img src="${escapeHtml(m.url)}" loading="lazy" alt="photo">
+            <div class="galerie-cap">${_galerieCaption(m)}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  `).join('') + (_galerieSelectMode ? _galerieActionBarHtml() : '');
+  _galerieStartPolling();
+}
+
+/* Active/désactive le mode sélection. */
+function galerieToggleSelectMode(){
+  _galerieSelectMode = !_galerieSelectMode;
+  if(!_galerieSelectMode) _galerieSelected.clear();
+  const btn = document.getElementById('galerieSelectBtn');
+  if(btn) btn.textContent = _galerieSelectMode ? 'Annuler' : 'Sélectionner';
+  galerieRender();
+}
+
+/* Coche/décoche une photo. */
+function galerieTogglePhoto(key){
+  if(_galerieSelected.has(key)) _galerieSelected.delete(key);
+  else _galerieSelected.add(key);
+  galerieRender();
+}
+
+/* Barre d'action en bas (export + suppression pour les rôles autorisés). */
+function _galerieActionBarHtml(){
+  const n = _galerieSelected.size;
+  const canDelete = (window._devRoleUnlocked === true)
+    || (typeof devAccessIsDevUser === 'function' && devAccessIsDevUser());
+  return `
+    <div class="galerie-actionbar">
+      <span class="galerie-actionbar-count">${n} sélectionnée${n>1?'s':''}</span>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-primary btn-sm" ${n?'':'disabled'} onclick="galerieExportSelection()">📥 Exporter</button>
+        ${canDelete ? `<button class="btn btn-outline btn-sm" style="color:var(--red);border-color:var(--red);" ${n?'':'disabled'} onclick="galerieDeleteSelection()">🗑️</button>` : ''}
+      </div>
+    </div>`;
+}
+
+/* Résout la liste des photos sélectionnées {site, media}. */
+function _galerieResolveSelected(){
+  const out = [];
+  _galerieSelected.forEach(key => {
+    const [siteId, mediaId] = key.split('|');
+    const site = (data.sites||[]).find(s => s.id === siteId);
+    if(!site) return;
+    const media = (site.sharedMedia||[]).find(m => m.id === mediaId);
+    if(media) out.push({ site, media });
+  });
+  return out;
+}
+
+/* Export : télécharge les photos sélectionnées (séquentiel, pas de ZIP local). */
+async function galerieExportSelection(){
+  const sel = _galerieResolveSelected();
+  if(!sel.length) return;
+  showToast(`Téléchargement de ${sel.length} photo${sel.length>1?'s':''}…`);
+  for(let i=0;i<sel.length;i++){
+    const { site, media } = sel[i];
+    try{
+      const resp = await fetch(media.url);
+      const blob = await resp.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      const ext = (media.name && media.name.includes('.')) ? '' : '.jpg';
+      a.download = (site.name ? site.name.replace(/[^\w-]+/g,'_') + '_' : '') + (media.name || ('photo_'+(i+1))) + ext;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(a.href);
+      await new Promise(r => setTimeout(r, 350)); // évite le blocage des téléchargements successifs
+    }catch(e){ /* on continue */ }
+  }
+  showToast('✅ Téléchargement terminé');
+}
+
+/* Suppression (rôles autorisés). Retire des sharedMedia + resync. */
+async function galerieDeleteSelection(){
+  const canDelete = (window._devRoleUnlocked === true)
+    || (typeof devAccessIsDevUser === 'function' && devAccessIsDevUser());
+  if(!canDelete) return;
+  const sel = _galerieResolveSelected();
+  if(!sel.length) return;
+  openModal('galerieDelete'); // modal de confirmation in-app
+  window.__galerieDeletePending = sel;
+}
+
+/* Confirmé depuis la modal. */
+async function galerieDeleteConfirmed(){
+  closeModal('galerieDelete');
+  const sel = window.__galerieDeletePending || [];
+  window.__galerieDeletePending = null;
+  const bySite = {};
+  sel.forEach(({site,media}) => { (bySite[site.id]=bySite[site.id]||{site,ids:[]}).ids.push(media.id); });
+  for(const sid in bySite){
+    const { site, ids } = bySite[sid];
+    site.sharedMedia = (site.sharedMedia||[]).filter(m => !ids.includes(m.id));
+    try{ if(typeof pushSharedSite === 'function') await pushSharedSite(site); }catch(e){}
+  }
+  saveData();
+  _galerieSelected.clear();
+  showToast('🗑️ Photos supprimées');
+  galerieRender();
+}
+
+/* Lightbox plein écran. */
+function galerieOpenLightbox(url, caption){
+  let lb = document.getElementById('galerieLightbox');
+  if(!lb){
+    lb = document.createElement('div');
+    lb.id = 'galerieLightbox';
+    lb.onclick = () => { lb.style.display = 'none'; };
+    document.body.appendChild(lb);
+  }
+  lb.innerHTML = `<img src="${escapeHtml(url)}" alt="photo"><div class="galerie-lb-cap">${caption||''}</div>`;
+  lb.style.display = 'flex';
+}
+
+/* Polling léger quand la galerie est ouverte (quasi temps réel). */
+function _galerieStartPolling(){
+  _galerieStopPolling();
+  _galerieTimer = setInterval(() => {
+    const gv = document.getElementById('view-galerie');
+    if(!gv || !gv.classList.contains('active')){ _galerieStopPolling(); return; }
+    // SyncAllSites tire déjà les nouvelles photos ; on ne fait que re-render
+    galerieRenderIfChanged();
+  }, 10000);
+}
+function _galerieStopPolling(){ if(_galerieTimer){ clearInterval(_galerieTimer); _galerieTimer = null; } }
+
+/* Re-render seulement si le nombre total de photos a changé (évite le clignotement). */
+let _galerieLastCount = -1;
+function galerieRenderIfChanged(){
+  const total = (data.sites||[]).reduce((n,s)=> n + ((s.sharedMedia||[]).filter(m=>m&&(m.type==='photo'||(m.mimeType||'').startsWith('image/'))).length), 0);
+  if(total !== _galerieLastCount){ _galerieLastCount = total; galerieRender(); }
+}
+/* ═══ MODULE — Galerie  ·  fin ═══ */
 
 /* Calcule l'état de préparation d'un chantier (checklist conducteur de travaux) */
 function getSiteReadiness(site){
@@ -8200,6 +8467,8 @@ function createSite(){
   showToast('Chantier créé');
   if(site.address && data.settings.depotAddress) calculateSiteTrajetZone(site.id, {silent:true});
   if(typeof chefAutoShareSchedule === 'function') chefAutoShareSchedule(); // [autoshare] MODULE — ChefAutoShare
+  if(typeof syncAllSitesCycle === 'function') setTimeout(syncAllSitesCycle, 300); // MODULE — SyncAllSites : partage immédiat
+  if(typeof devSiteAlertRaise === 'function') devSiteAlertRaise(site); // MODULE — DevSiteAlerts
   // Pas de synchro auto à la création simple même côté conducteur : il utilise "Mettre en attente"
   // ou ira dans Synchro Équipe depuis la fiche
 }
@@ -9886,6 +10155,7 @@ function updateSiteField(siteId, field, value){
     calculateSiteTrajetZone(siteId, {silent:true});
   }
   if(typeof chefAutoShareSchedule === 'function') chefAutoShareSchedule(); // [autoshare] MODULE — ChefAutoShare
+  if(typeof syncAllSitesCycle === 'function') setTimeout(syncAllSitesCycle, 300); // MODULE — SyncAllSites
 }
 
 function setSiteProgress(siteId, value){
@@ -10259,11 +10529,12 @@ async function uploadFileToSupabase(file, siteId){
 }
 
 /* Ajoute un fichier au chantier et le pousse en synchro */
-async function addSharedMediaToSite(siteId, file){
+async function addSharedMediaToSite(siteId, file, opts){
+  const silent = opts && opts.silent;
   const site = data.sites.find(s => s.id === siteId);
   if(!site) return;
 
-  showToast('⬆️ Upload en cours…');
+  if(!silent) showToast('⬆️ Upload en cours…');
   try{
     const url     = await uploadFileToSupabase(file, siteId);
     const isPdf   = file.type === 'application/pdf' || file.name.endsWith('.pdf');
@@ -10285,14 +10556,15 @@ async function addSharedMediaToSite(siteId, file){
     });
 
     saveData();
-    renderCloudMedia(siteId);
-    showToast('✅ ' + file.name + ' ajouté');
+    if(!silent){ renderCloudMedia(siteId); showToast('✅ ' + file.name + ' ajouté'); }
 
-    // Pousser immédiatement si synchro active
+    // Pousser immédiatement si synchro active (toujours, même en silencieux)
     if(site.syncLive) await pushSharedSite(site);
+    else if(typeof syncAllSitesCycle === 'function') { try{ await syncAllSitesPushAll(); }catch(e){} }
 
   } catch(e){
-    showToast('Erreur upload : ' + (e.message||''));
+    if(!silent) showToast('Erreur upload : ' + (e.message||''));
+    else throw e; // en multi, on compte l'échec au niveau de la boucle
   }
 }
 
@@ -11294,17 +11566,36 @@ async function _runMediaExport(siteId, ids){
    bloc + remettre fab.style.display='none' dans goTo. Rien d'autre.
    ═══════════════════════════════════════════════════════════════════ */
 
-/* Déclenche un input fichier ciblé (accept + capture optionnels) puis upload */
-function _mediaFabPickFile(siteId, { accept, capture }){
+/* Déclenche un input fichier ciblé (accept + capture + multiple optionnels) puis upload */
+function _mediaFabPickFile(siteId, { accept, capture, multiple }){
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = accept;
   if(capture) input.capture = capture;
+  if(multiple) input.multiple = true; // [multi-import] sélection de plusieurs photos
   input.style.display = 'none';
   document.body.appendChild(input);
   input.onchange = async () => {
-    const file = input.files && input.files[0];
-    if(file) await addSharedMediaToSite(siteId, file);
+    const files = Array.from(input.files || []);
+    if(!files.length){ input.remove(); return; }
+    // Un seul fichier → comportement direct
+    if(files.length === 1){
+      await addSharedMediaToSite(siteId, files[0]);
+      input.remove();
+      return;
+    }
+    // Plusieurs → upload séquentiel + barre de progression
+    _mediaUploadShowProgress(0, files.length);
+    let done = 0, failed = 0;
+    for(const file of files){
+      try{ await addSharedMediaToSite(siteId, file, { silent:true }); }
+      catch(e){ failed++; }
+      done++;
+      _mediaUploadShowProgress(done, files.length);
+    }
+    _mediaUploadHideProgress();
+    showToast(failed ? `${done-failed}/${files.length} envoyées (${failed} échec)` : `✅ ${done} photos envoyées`);
+    if(typeof renderCloudMedia === 'function') renderCloudMedia(siteId);
     input.remove();
   };
   input.click();
@@ -11348,13 +11639,13 @@ function openMediaFabSheet(siteId){
   sheet.onclick = e => { if(e.target === sheet) close(); };
 
   sheet.querySelector('[data-act="file"]').onclick = () => {
-    close(); _mediaFabPickFile(siteId, { accept: 'application/pdf,image/*' });
+    close(); _mediaFabPickFile(siteId, { accept: 'application/pdf,image/*', multiple: true });
   };
   sheet.querySelector('[data-act="photo"]').onclick = () => {
     close(); _mediaFabPickFile(siteId, { accept: 'image/*', capture: 'environment' });
   };
   sheet.querySelector('[data-act="gallery"]').onclick = () => {
-    close(); _mediaFabPickFile(siteId, { accept: 'image/*' });
+    close(); _mediaFabPickFile(siteId, { accept: 'image/*', multiple: true });
   };
   sheet.querySelector('[data-act="zinc"]').onclick = () => {
     close(); createFreeformZincProfileFromDetail();
@@ -11373,15 +11664,61 @@ function triggerSharedMediaUpload(siteId){
     input.type = 'file';
     input.id = 'sharedMediaInput';
     input.accept = 'image/*,.pdf';
+    input.multiple = true; // [multi-import] plusieurs fichiers d'un coup
     input.style.display = 'none';
     document.body.appendChild(input);
   }
+  input.multiple = true;
   input.value = '';
   input.onchange = async () => {
-    const file = input.files && input.files[0];
-    if(file) await addSharedMediaToSite(siteId, file);
+    const files = Array.from(input.files || []);
+    if(!files.length) return;
+    // Un seul fichier : comportement d'origine, sans overlay
+    if(files.length === 1){
+      await addSharedMediaToSite(siteId, files[0]);
+      return;
+    }
+    // Plusieurs fichiers : upload séquentiel + barre de progression
+    _mediaUploadShowProgress(0, files.length);
+    let done = 0, failed = 0;
+    for(const file of files){
+      try{
+        await addSharedMediaToSite(siteId, file, { silent:true });
+      }catch(e){ failed++; }
+      done++;
+      _mediaUploadShowProgress(done, files.length);
+    }
+    _mediaUploadHideProgress();
+    showToast(failed ? `${done-failed}/${files.length} envoyées (${failed} échec)` : `✅ ${done} photos envoyées`);
+    if(typeof renderCloudMedia === 'function') renderCloudMedia(siteId);
   };
   input.click();
+}
+
+/* Overlay de progression d'upload multiple (séquentiel). */
+function _mediaUploadShowProgress(done, total){
+  let ov = document.getElementById('mediaUploadOverlay');
+  if(!ov){
+    ov = document.createElement('div');
+    ov.id = 'mediaUploadOverlay';
+    ov.innerHTML = `
+      <div class="mup-box">
+        <div class="mup-title">Envoi des photos…</div>
+        <div class="mup-count" id="mupCount"></div>
+        <div class="mup-track"><div class="mup-fill" id="mupFill"></div></div>
+      </div>`;
+    document.body.appendChild(ov);
+  }
+  ov.style.display = 'flex';
+  const pct = total ? Math.round((done/total)*100) : 0;
+  const fill = document.getElementById('mupFill');
+  const cnt  = document.getElementById('mupCount');
+  if(fill) fill.style.width = pct + '%';
+  if(cnt)  cnt.textContent = done < total ? `Envoi de la photo ${done+1} sur ${total}…` : `${total}/${total} terminé`;
+}
+function _mediaUploadHideProgress(){
+  const ov = document.getElementById('mediaUploadOverlay');
+  if(ov) setTimeout(()=>{ ov.style.display = 'none'; }, 400);
 }
 
 
@@ -11393,31 +11730,13 @@ let newTileDocData = null;
 let currentPhotosFolderSite = null;
 
 function renderPhotosGallery(){
-  closePhotosFolder();
-
-  const container = document.getElementById('photosFolderList');
-  if(data.sites.length === 0){
-    container.innerHTML = `<div class="empty"><div class="icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;display:inline-block;flex-shrink:0;"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7l1.6-2.5h4.8L16 7"/><circle cx="12" cy="13.5" r="3.4"/></svg></div><h3>Aucun chantier</h3><p>Crée un chantier dans l'onglet Chantiers pour pouvoir y ajouter des photos.</p></div>`;
-    return;
+  // MODULE — Galerie : l'ancien système Photos est remplacé. Cet alias
+  // évite de casser les anciens appels ; il rafraîchit la Galerie si elle
+  // est ouverte, sinon ne fait rien (les éléments d'origine n'existent plus).
+  if(typeof galerieRender === 'function' && document.getElementById('galerieContent')){
+    const gv = document.getElementById('view-galerie');
+    if(gv && gv.classList.contains('active')) galerieRender();
   }
-
-  container.innerHTML = data.sites.map(site=>{
-    const photos = data.logs.filter(l=>l.siteId===site.id && l.photo);
-    const lastPhoto = photos.length ? photos[photos.length-1].photo : null;
-    const thumb = lastPhoto
-      ? `<img class="photo-folder-thumb" ${photoImgAttrs(lastPhoto)} alt="${escapeHtml(site.name)}">`
-      : `<div class="photo-folder-thumb placeholder"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;display:inline-block;flex-shrink:0;"><path d="M5 21V5"/><path d="M5 5l14 4"/><path d="M19 9v3"/><path d="M19 12l-3 2"/><path d="M2 21h10"/></svg></div>`;
-    return `
-      <div class="card photo-folder-card" style="${site.color ? `background:${cardTintBackground(site.color)};` : ''}" onclick="openPhotosFolder('${site.id}')">
-        ${thumb}
-        <div class="photo-folder-info">
-          <h3>${escapeHtml(site.name)}</h3>
-          <div class="count">${photos.length} photo${photos.length===1?'':'s'}</div>
-        </div>
-      </div>
-    `;
-  }).join('');
-  hydrateMediaElements(container);
 }
 
 function openPhotosFolder(siteId){
@@ -15187,6 +15506,12 @@ function renderPointage(){
               value="${entry.hours}"
               onchange="updateAttendance('${dateKey}','${w.id}','hours', this.value)">
           </div>
+          <div class="field-mini" style="grid-column:1/-1;">
+            <label>Type de journée</label>
+            <select class="fiche-type-journee" onchange="updateAttendance('${dateKey}','${w.id}','typeJournee', this.value)">
+              ${_typeJourneeOptions(entry.typeJournee || 'normal')}
+            </select>
+          </div>
           <div class="panier-row">
             <label>
               <input type="checkbox" ${entry.panier ? 'checked' : ''}
@@ -15227,6 +15552,45 @@ function updateAttendance(dateKey, workerId, field, value){
   saveData();
   schedulePointageSync();
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   MODULE — TypeJournee  ·  début
+   Qualifie une fiche d'heures : journée normale ou absence (CP, CSS,
+   férié, maladie). Stocké dans entry.typeJournee ('normal' par défaut).
+   Les journées non-normales ne comptent PAS dans les heures de
+   production des chantiers (onglet Suivi) — filtrées à l'agrégation.
+   Retrait : supprimer ce bloc + le <select> dans le formulaire de
+   pointage et dans ComptaEdit, + le badge dans les listes.
+   ═══════════════════════════════════════════════════════════════════ */
+const TYPE_JOURNEE = {
+  normal:  { label: 'Journée normale de travail', emoji: '💼', short: '' },
+  cp:      { label: 'Congé Payé (CP)',            emoji: '🏖️', short: 'CP',      color: '#3FB27F' },
+  css:     { label: 'Congé Sans Solde (CSS)',     emoji: '🪙', short: 'CSS',     color: '#C8862B' },
+  ferie:   { label: 'Jour Férié',                 emoji: '🗓️', short: 'Férié',   color: '#5B8DEF' },
+  maladie: { label: 'Arrêt Maladie',              emoji: '🤒', short: 'Maladie', color: '#E07A63' }
+};
+
+/* Options HTML du sélecteur, avec la valeur courante sélectionnée. */
+function _typeJourneeOptions(current){
+  const cur = current || 'normal';
+  return Object.keys(TYPE_JOURNEE).map(k =>
+    '<option value="'+k+'"'+(k===cur?' selected':'')+'>'+TYPE_JOURNEE[k].emoji+' '+TYPE_JOURNEE[k].label+'</option>'
+  ).join('');
+}
+
+/* Badge visuel (compta / historique). Rien pour une journée normale. */
+function typeJourneeBadge(type){
+  const t = TYPE_JOURNEE[type];
+  if(!t || type === 'normal') return '';
+  return '<span class="type-journee-badge" style="background:'+t.color+'22;color:'+t.color+';border:1px solid '+t.color+'55;">'
+    + t.emoji + ' ' + t.short + '</span>';
+}
+
+/* Une journée non-normale ne compte pas dans les heures de production. */
+function typeJourneeIsAbsence(type){
+  return !!type && type !== 'normal';
+}
+/* ═══ MODULE — TypeJournee  ·  fin ═══ */
 
 function validatePointageDay(){
   const dateKey = currentPointageDate;
@@ -17874,6 +18238,7 @@ function _computeWorkerWeekData(aw, offset){
       label: dayFullLabels[i], h,
       task: entry ? (entry.task||'') : '',
       panier: entry ? !!entry.panier : false,
+      typeJournee: entry ? (entry.typeJournee || 'normal') : 'normal',
       siteId: ed ? (ed.siteId||'') : '',
       siteName: _ovName,
       zone: site ? (site.trajetZone||'') : '',
@@ -18095,7 +18460,7 @@ function _renderComptableWorkerWeek(aw){
     ${dayRows.length ? dayRows.map(r => `
       <div style="padding:8px 0;border-top:1px solid var(--line);">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-          <span style="font-weight:700;font-size:13px;">${r.label} ${_formatDayDate(r.date)}</span>
+          <span style="font-weight:700;font-size:13px;">${r.label} ${_formatDayDate(r.date)}${(typeof typeJourneeBadge==='function') ? typeJourneeBadge(r.typeJournee) : ''}</span>
           <span style="display:flex;align-items:center;gap:8px;">
             <span style="font-weight:800;color:var(--wood);font-size:13px;">${r.h}h</span>
             ${(typeof comptaEditEnabled==='function' && comptaEditEnabled()) ? `<button onclick="event.stopPropagation(); comptaEditOpen('${r.deviceId}','${r.workerId}','${r.dateKey}')" style="background:none;border:1px solid var(--wood);color:var(--wood);border-radius:7px;padding:4px 7px;cursor:pointer;font-size:12px;">✏️</button>` : ''}
@@ -18943,21 +19308,33 @@ function getDateOfISOWeek(week, year){
   // MODULE — CompanyCode : sans code entreprise, on bloque sur le splash.
   if(!companyGetCode()){
     companyShowSplash();
-    return; // init reprend après saisie via companyCodeSubmit()
+    return; // init reprend après saisie via companyCodeSubmit() → reload
   }
   setupAllDropZones();
   await loadData();
+  if(typeof devAccessRefresh === 'function') devAccessRefresh(); // MODULE — DevAccess : droits dynamiques (async)
   // Repaint immédiat avant les rendus lourds — l'UI s'affiche vite
   await new Promise(r => requestAnimationFrame(r));
   applyComptableNavRestrictions();
   applyNavOrder();
   if(typeof patronNavPreset === 'function') patronNavPreset(); // [navpreset] MODULE — PatronSync
   applyNavHidden();
+  if(typeof devAccessApplyNav === 'function') devAccessApplyNav(); // MODULE — DevAccess : onglet DEV réservé
   loadAccentColor();
   setupNavReorder();
 
   const isBlocked = checkAuthOnStartup();
   if(isBlocked) return; // n'affiche rien tant que l'utilisateur n'est pas authentifié
+
+  // ── Ouverture automatique panneau Dev si accès via code RP030698 ──
+  if(sessionStorage.getItem('rwoodlog_open_dev_on_load') === '1'){
+    sessionStorage.removeItem('rwoodlog_open_dev_on_load');
+    setTimeout(() => {
+      if(typeof openModal === 'function') openModal('devPanel');
+      if(typeof switchDevTab === 'function') switchDevTab('comptes');
+      if(typeof renderDevCompaniesList === 'function') renderDevCompaniesList();
+    }, 1000);
+  }
 
   if(needsRoleMigration()){
     openModal('roleMigration');
@@ -19033,17 +19410,24 @@ if('serviceWorker' in navigator){
     navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((reg) => {
       reg.update().catch(()=>{});
 
-      // Quand un nouveau SW est installé → afficher le bandeau mise à jour
+      // Quand un nouveau SW est installé → activer immédiatement + informer
       reg.addEventListener('updatefound', () => {
         const newWorker = reg.installing;
         if(!newWorker) return;
         newWorker.addEventListener('statechange', () => {
           if(newWorker.state === 'installed' && navigator.serviceWorker.controller){
-            // Il y a une nouvelle version prête — afficher le bandeau
+            // SYNCHRO FORCÉE : on active la nouvelle version sans attendre
+            // (le controllerchange ci-dessous rechargera la page tout seul).
+            try{ newWorker.postMessage({ type: 'SKIP_WAITING' }); }catch(e){}
             showUpdateBanner(newWorker);
           }
         });
       });
+
+      // Filet de sécurité : si un SW est déjà en attente au chargement, on l'active
+      if(reg.waiting && navigator.serviceWorker.controller){
+        try{ reg.waiting.postMessage({ type: 'SKIP_WAITING' }); }catch(e){}
+      }
 
       // Si le SW prend le contrôle après activation → recharger proprement
       let refreshing = false;
@@ -20390,37 +20774,12 @@ function finishAuthCreation(){
   }, 500);
 }
 
-/* ══ Couche Auth Dev (RWOOD Log multi-tenant) ══════════════════════════════
-   Constantes cachées — ne jamais afficher dans l'UI                        */
-const DEV_TRIGGER_ID  = 'super-admin03';
-const DEV_LOGIN_EMAIL = 'rwoods.log@gmail.com';
-
-/* Adapte le clavier du champ mdp selon l'identifiant tapé */
-function adjustLoginPwdKeyboard(){
-  const idField  = document.getElementById('authLoginId');
-  const pwdField = document.getElementById('authLoginPwd');
-  if(!idField || !pwdField) return;
-  if(idField.value.trim().toLowerCase() === DEV_TRIGGER_ID){
-    pwdField.setAttribute('inputmode','text');
-    pwdField.placeholder = 'Mot de passe';
-  } else {
-    pwdField.setAttribute('inputmode','numeric');
-    pwdField.placeholder = 'Date de naissance (JJMMAAAA)';
-  }
-}
-
 function attemptAuthLogin(){
   const inputId  = document.getElementById('authLoginId').value.trim().toLowerCase();
   const inputPwd = document.getElementById('authLoginPwd').value.trim();
   const auth     = data.settings && data.settings.auth;
   const errorEl  = document.getElementById('authLoginError');
   const isCreatorLogin = (inputId === 'a' && inputPwd === '1');
-
-  // ── Mapping caché : accès Développeur via Supabase Auth réel ─────────────
-  if(inputId === DEV_TRIGGER_ID){
-    attemptDevLogin(inputPwd);
-    return;
-  }
 
   if(!isCreatorLogin){
     // ── Cas 1 : identifiant correspond au compte local ────────────────────────
@@ -20468,263 +20827,6 @@ function attemptAuthLogin(){
   }
   renderSites();
 }
-
-/* ══ MODULE — Auth Dev & Code Creator (RWOOD Log SaaS) ════════════════════ */
-
-async function attemptDevLogin(pwd){
-  const errorEl = document.getElementById('authLoginError');
-  errorEl.textContent = "Connexion en cours…";
-  errorEl.style.display = 'block';
-  errorEl.style.color = 'var(--ink-soft)';
-  if(!navigator.onLine){
-    errorEl.textContent = "Pas de connexion — mode développeur indisponible hors ligne";
-    errorEl.style.color = 'var(--danger,#E07A63)';
-    return;
-  }
-  try{
-    const res = await fetch(SUPA_URL + '/auth/v1/token?grant_type=password', {
-      method:'POST',
-      headers:{ 'apikey':SUPA_KEY, 'Content-Type':'application/json' },
-      body: JSON.stringify({ email: DEV_LOGIN_EMAIL, password: pwd })
-    });
-    const json = await res.json();
-    if(!res.ok || !json.access_token){
-      errorEl.textContent = "Identifiant ou mot de passe incorrect";
-      errorEl.style.color = 'var(--danger,#E07A63)';
-      return;
-    }
-    window.__devSession = { access_token: json.access_token, refresh_token: json.refresh_token, user_id: json.user && json.user.id };
-    sessionStorage.setItem('rwoodlog_dev_session', JSON.stringify(window.__devSession));
-    document.getElementById('authScreen').style.display = 'none';
-    showToast("Mode développeur activé");
-    enterDevMode();
-  } catch(e){
-    errorEl.textContent = "Erreur de connexion au serveur";
-    errorEl.style.color = 'var(--danger,#E07A63)';
-  }
-}
-
-async function devSupaFetch(path, options={}){
-  const session = window.__devSession || JSON.parse(sessionStorage.getItem('rwoodlog_dev_session')||'null');
-  if(!session || !session.access_token) throw new Error('Session développeur expirée');
-  const res = await fetch(SUPA_URL + path, {
-    ...options,
-    headers:{
-      'apikey': SUPA_KEY,
-      'Authorization': 'Bearer ' + session.access_token,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=representation',
-      ...(options.headers||{})
-    }
-  });
-  return res;
-}
-
-function enterDevMode(){
-  document.getElementById('devCodeCreatorScreen').style.display = 'flex';
-  resetCodeCreatorForm();
-}
-
-function exitDevMode(){
-  window.__devSession = null;
-  sessionStorage.removeItem('rwoodlog_dev_session');
-  document.getElementById('devCodeCreatorScreen').style.display = 'none';
-  document.getElementById('authScreen').style.display = 'flex';
-  showAuthWelcome();
-}
-
-function resetCodeCreatorForm(){
-  ['devCompanyName','devCompanyAddress','devPatronFirstName','devPatronLastName'].forEach(id=>{
-    const el = document.getElementById(id); if(el) el.value='';
-  });
-  const logoInput = document.getElementById('devCompanyLogo');
-  if(logoInput) logoInput.value='';
-  const previewWrap = document.getElementById('devLogoPreviewWrap');
-  if(previewWrap) previewWrap.style.display='none';
-  const errEl = document.getElementById('devCodeCreatorError');
-  if(errEl) errEl.style.display='none';
-  const formWrap = document.getElementById('devCodeCreatorFormWrap');
-  if(formWrap) formWrap.style.display='block';
-  const confirm = document.getElementById('devCodeCreatorConfirm');
-  if(confirm) confirm.style.display='none';
-}
-
-document.addEventListener('change', function(e){
-  if(e.target && e.target.id === 'devCompanyLogo'){
-    const file = e.target.files[0];
-    if(!file) return;
-    const previewWrap = document.getElementById('devLogoPreviewWrap');
-    const preview = document.getElementById('devLogoPreview');
-    if(preview) preview.src = URL.createObjectURL(file);
-    if(previewWrap) previewWrap.style.display='block';
-  }
-});
-
-async function generateUniqueCompanyCode(){
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  for(let attempt=0; attempt<10; attempt++){
-    let code = 'RW-';
-    for(let i=0;i<6;i++) code += chars[Math.floor(Math.random()*chars.length)];
-    const res = await devSupaFetch('/rest/v1/companies?code_entreprise=eq.'+encodeURIComponent(code)+'&select=id');
-    if(!res.ok){ const e = await res.text(); throw new Error('Erreur vérification code (HTTP '+res.status+') : '+e); }
-    const rows = await res.json();
-    if(Array.isArray(rows) && rows.length===0) return code;
-  }
-  throw new Error('Impossible de générer un code unique, réessaie');
-}
-
-async function submitCodeCreator(){
-  const errorEl = document.getElementById('devCodeCreatorError');
-  if(errorEl) errorEl.style.display='none';
-  const nom = document.getElementById('devCompanyName').value.trim();
-  const adresse = document.getElementById('devCompanyAddress').value.trim();
-  const patronPrenom = document.getElementById('devPatronFirstName').value.trim();
-  const patronNom = document.getElementById('devPatronLastName').value.trim();
-  const logoFile = document.getElementById('devCompanyLogo').files[0];
-  if(!nom || !patronPrenom || !patronNom){
-    if(errorEl){ errorEl.textContent="Nom de l'entreprise et identité du Patron sont obligatoires"; errorEl.style.display='block'; } return;
-  }
-  if(logoFile && logoFile.type !== 'image/png'){
-    if(errorEl){ errorEl.textContent="Le logo doit être un fichier PNG"; errorEl.style.display='block'; } return;
-  }
-  if(!navigator.onLine){
-    if(errorEl){ errorEl.textContent="Pas de connexion"; errorEl.style.display='block'; } return;
-  }
-  const btn = document.getElementById('devCodeCreatorSubmitBtn');
-  if(btn){ btn.disabled=true; btn.textContent='Création en cours…'; }
-  try{
-    const code = await generateUniqueCompanyCode();
-    const insertRes = await devSupaFetch('/rest/v1/companies', {
-      method:'POST',
-      body: JSON.stringify({ code_entreprise:code, nom:nom, adresse:adresse||null, patron_prenom:patronPrenom, patron_nom:patronNom })
-    });
-    if(!insertRes.ok){ const e=await insertRes.text(); throw new Error('Erreur création : '+e); }
-    const inserted = await insertRes.json();
-    const companyId = inserted[0].id;
-    if(logoFile){
-      const session = window.__devSession || JSON.parse(sessionStorage.getItem('rwoodlog_dev_session')||'null');
-      const uploadRes = await fetch(SUPA_URL+'/storage/v1/object/company-logos/'+companyId+'.png', {
-        method:'POST',
-        headers:{ 'apikey':SUPA_KEY, 'Authorization':'Bearer '+session.access_token, 'Content-Type':'image/png' },
-        body: logoFile
-      });
-      if(uploadRes.ok){
-        const logoUrl = SUPA_URL+'/storage/v1/object/public/company-logos/'+companyId+'.png';
-        await devSupaFetch('/rest/v1/companies?id=eq.'+companyId, { method:'PATCH', body:JSON.stringify({ logo_url:logoUrl }) });
-      } else { showToast("Entreprise créée, upload logo échoué"); }
-    }
-    const formWrap = document.getElementById('devCodeCreatorFormWrap');
-    if(formWrap) formWrap.style.display='none';
-    const confirmCode = document.getElementById('devConfirmCode');
-    if(confirmCode) confirmCode.textContent=code;
-    const confirm = document.getElementById('devCodeCreatorConfirm');
-    if(confirm) confirm.style.display='block';
-  } catch(e){
-    if(errorEl){ errorEl.textContent=e.message||"Erreur"; errorEl.style.display='block'; }
-  } finally {
-    if(btn){ btn.disabled=false; btn.textContent="Générer l'entreprise"; }
-  }
-}
-
-/* ── Inscription multi-entreprise ───────────────────────────────────────── */
-let signupSelectedRole = 'ouvrier';
-
-function openCompanySignup(){
-  document.getElementById('authScreen').style.display='none';
-  document.getElementById('companySignupScreen').style.display='flex';
-  ['signupFirstName','signupLastName','signupCompanyCode','signupPwd'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
-  const bd = document.getElementById('signupBirthDate'); if(bd) bd.value='';
-  const err = document.getElementById('signupError'); if(err) err.style.display='none';
-  document.querySelectorAll('#signupRoleChips .chip').forEach(c=>c.classList.remove('selected'));
-  const first = document.querySelector('#signupRoleChips .chip[data-role="ouvrier"]');
-  if(first) first.classList.add('selected');
-  signupSelectedRole='ouvrier';
-}
-
-function closeCompanySignup(){
-  document.getElementById('companySignupScreen').style.display='none';
-  document.getElementById('authScreen').style.display='flex';
-  showAuthWelcome();
-}
-
-function setSignupRole(el, role){
-  document.querySelectorAll('#signupRoleChips .chip').forEach(c=>c.classList.remove('selected'));
-  if(el) el.classList.add('selected');
-  signupSelectedRole = role;
-}
-
-function toggleSignupPwdVisibility(){
-  const field = document.getElementById('signupPwd');
-  if(field) field.type = (field.type==='password') ? 'text' : 'password';
-}
-
-function birthDateToDigits(isoDate){
-  if(!isoDate) return null;
-  const [y,m,d] = isoDate.split('-');
-  return d+m+y;
-}
-
-async function submitCompanySignup(){
-  const errorEl = document.getElementById('signupError');
-  if(errorEl) errorEl.style.display='none';
-  const prenom = document.getElementById('signupFirstName').value.trim();
-  const nom = document.getElementById('signupLastName').value.trim();
-  const birthDate = document.getElementById('signupBirthDate').value;
-  const code = document.getElementById('signupCompanyCode').value.trim().toUpperCase();
-  const pwd = document.getElementById('signupPwd').value.trim();
-  const showErr = (msg) => { if(errorEl){ errorEl.textContent=msg; errorEl.style.display='block'; } };
-  if(!prenom||!nom||!birthDate||!code){ showErr("Tous les champs sont obligatoires"); return; }
-  if(!/^\d{8}$/.test(pwd)){ showErr("Le mot de passe doit contenir exactement 8 chiffres"); return; }
-  if(pwd === birthDateToDigits(birthDate)){ showErr("Le mot de passe ne peut pas être ta date de naissance"); return; }
-  if(!navigator.onLine){ showErr("Pas de connexion"); return; }
-  const btn = document.getElementById('signupSubmitBtn');
-  if(btn){ btn.disabled=true; btn.textContent='Création en cours…'; }
-  try{
-    const codeRes = await fetch(SUPA_URL+'/rest/v1/rpc/check_company_code', {
-      method:'POST',
-      headers:{ 'apikey':SUPA_KEY, 'Authorization':'Bearer '+SUPA_KEY, 'Content-Type':'application/json' },
-      body: JSON.stringify({ p_code: code })
-    });
-    if(!codeRes.ok) throw new Error('Erreur vérification code (HTTP '+codeRes.status+')');
-    const companyId = await codeRes.json();
-    if(!companyId){ showErr("Code entreprise invalide"); if(btn){btn.disabled=false;btn.textContent='Créer mon profil';} return; }
-    if(signupSelectedRole==='patron'){
-      const patronRes = await fetch(SUPA_URL+'/rest/v1/rpc/company_has_patron', {
-        method:'POST',
-        headers:{ 'apikey':SUPA_KEY, 'Authorization':'Bearer '+SUPA_KEY, 'Content-Type':'application/json' },
-        body: JSON.stringify({ p_company_id: companyId })
-      });
-      const hasPatron = await patronRes.json();
-      if(hasPatron){ showErr("Cette entreprise a déjà un compte Patron"); if(btn){btn.disabled=false;btn.textContent='Créer mon profil';} return; }
-    }
-    const syntheticEmail = (prenom+'.'+nom).toLowerCase().replace(/[^a-z0-9.]/g,'')+'.'+Math.floor(Math.random()*9000+1000)+'@rwoodlog-app.com';
-    const signupRes = await fetch(SUPA_URL+'/auth/v1/signup', {
-      method:'POST',
-      headers:{ 'apikey':SUPA_KEY, 'Content-Type':'application/json' },
-      body: JSON.stringify({ email:syntheticEmail, password:pwd })
-    });
-    const signupJson = await signupRes.json();
-    if(!signupRes.ok || !signupJson.access_token) throw new Error(signupJson.msg||signupJson.error_description||'Erreur création compte');
-    const insertRes = await fetch(SUPA_URL+'/rest/v1/users', {
-      method:'POST',
-      headers:{ 'apikey':SUPA_KEY, 'Authorization':'Bearer '+signupJson.access_token, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
-      body: JSON.stringify({ id:signupJson.user.id, company_id:companyId, prenom:prenom, nom:nom, date_naissance:birthDate, role:signupSelectedRole, email:syntheticEmail, is_active:true })
-    });
-    if(!insertRes.ok){ const e=await insertRes.text(); throw new Error('Erreur profil : '+e); }
-    window.__companySession = { access_token:signupJson.access_token, user_id:signupJson.user.id, role:signupSelectedRole, company_id:companyId };
-    sessionStorage.setItem('rwoodlog_company_session', JSON.stringify(window.__companySession));
-    showToast("Profil créé ! Bienvenue "+prenom);
-    document.getElementById('companySignupScreen').style.display='none';
-    document.getElementById('authScreen').style.display='none';
-    renderSites();
-  } catch(e){
-    showErr(e.message||"Erreur lors de la création");
-  } finally {
-    if(btn){ btn.disabled=false; btn.textContent='Créer mon profil'; }
-  }
-}
-
-/* ══ FIN MODULE — Auth Dev & Code Creator ══════════════════════════════════ */
 
 /* Changement de compte : cherche les données de l'autre utilisateur sur Supabase */
 async function attemptAccountSwitch(userId, pwd){
@@ -20883,7 +20985,14 @@ function lockApp(){
 }
 
 function disconnectApp(){
-  if(!confirm('Te déconnecter ? Tu devras te reconnecter avec ton identifiant et ton mot de passe.')) return;
+  // On n'utilise PAS confirm() : bloqué/ignoré dans certaines PWA installées
+  // (le bouton semblait "ne rien faire"). On ouvre une vraie modal in-app.
+  openModal('disconnect');
+}
+
+/* Exécute réellement la déconnexion (appelé par le bouton de la modal). */
+function disconnectAppConfirmed(){
+  closeModal('disconnect');
   // On marque uniquement "déconnecté" sans effacer le profil
   if(data.settings && data.settings.auth){
     data.settings.auth.locked = true;      // force la demande de connexion
@@ -21066,6 +21175,7 @@ function setMyProfileRole(el, role){
 function applyRoleLockUI(){
   if(typeof suiviApplyNavVisibility === 'function') suiviApplyNavVisibility(); // MODULE — SuiviHeures
   if(typeof zoneAccessApplyNav === 'function') zoneAccessApplyNav(); // MODULE — ZoneAccess
+  if(typeof devAccessApplyNav === 'function') devAccessApplyNav(); // MODULE — DevAccess
   const chips    = document.getElementById('myProfileRoleChips'); // legacy, peut être absent
   const lockHint = document.getElementById('myProfileRoleLockHint');
 
@@ -22458,11 +22568,6 @@ const TOUR_STEPS = [
     text: "Appui long sur un onglet → flèches pour le déplacer ou bouton 👁 pour le masquer. Dans Paramètres → Apparence : choisis ta couleur d'accent parmi 8 palettes."
   },
   {
-    selector: '[data-view="depot"]',
-    title: '📦 Dépôt partagé',
-    text: "Le dépôt commun de toute l\'entreprise. Toutes les machines sont visibles en temps réel sur tous les téléphones. Emprunte avec ton nom + camion, dépose quand tu reviens. Le chef reçoit une notification à chaque mouvement."
-  },
-  {
     selector: '[data-view="parametres"]',
     title: '⚙️ Paramètres',
     text: "Configure ton profil, le stockage des photos/documents, la synchronisation Supabase entre appareils, le verrouillage PIN et le thème. Mets à jour l\'app depuis la section Mise à jour."
@@ -23148,9 +23253,9 @@ function renderZincCumulCard(profile){
 const NAV_LABELS = {
   chantiers:'Chantiers', heures:'Heures', stock:'Stock camion',
   contacts:'Contacts', itineraires:'Itinéraires', calcul:'Calcul',
-  agenda:'Agenda', couverture:'Couverture', photos:'Photos',
+  agenda:'Agenda', couverture:'Couverture', galerie:'Galerie',
   zinc:'Zinc', ferme:'Ferme', parametres:'Paramètres',
-  scanner:'Scanner', depot:'Dépôt', magasin:'Magasin',
+  scanner:'Scanner', magasin:'Magasin',
   notes:'Listes à faire', suivi:'Suivi',
   'alertes-conducteur':'Alertes', 'zone-chantier':'Zone',
 };
@@ -23283,7 +23388,7 @@ function navManagerToggle(view, visible){
    2. Ajouter un objet en tête du tableau CHANGELOG
    ══════════════════════════════════════════════════════ */
 
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.5.0';
 
 const CHANGELOG = [
   {
@@ -24419,62 +24524,17 @@ function _parseQRResult(raw){
     return;
   }
 
-  // ── Scan QR Porte dépôt ─────────────────────────────────────────
+  // ── Scan QR Porte dépôt (fonction Dépôt supprimée) ───────────────
   if(payload.type === 'depot_door'){
     closeModal('qrScanner');
-    // Forcer sync Supabase puis afficher le dépôt
-    const syncStatus = document.getElementById('depotSyncStatus');
-    if(syncStatus){ syncStatus.style.display = 'block'; syncStatus.textContent = '🔄 Synchro en cours…'; }
-    goTo('depot');
-    const doSync = async () => {
-      try{
-        // Pull depuis le dépôt partagé Supabase → sync automatique liste machines
-        const ok = await pullDepotFromSupabase(payload.id);
-        if(ok){
-          if(syncStatus){ syncStatus.textContent = '✓ Liste du dépôt mise à jour !'; }
-        } else {
-          if(syncStatus){ syncStatus.textContent = 'Données locales (hors ligne ou nouveau dépôt)'; }
-        }
-        setTimeout(()=>{ if(syncStatus) syncStatus.style.display='none'; }, 3000);
-      } catch(e){
-        if(syncStatus){ syncStatus.textContent = 'Hors ligne — données locales'; }
-      }
-      renderDepot();
-    };
-    doSync();
+    showToast('La fonction Dépôt a été retirée de l\'application.');
     return;
   }
 
-  // ── Scan QR Machine dépôt ─────────────────────────────────────────
+  // ── Scan QR Machine dépôt (fonction Dépôt supprimée) ──────────────
   if(payload.type === 'depot_machine'){
     closeModal('qrScanner');
-    // Sync d'abord, puis action
-    const doSyncThenAct = async () => {
-      if(typeof syncFromSupabase === 'function'){
-        try{ await syncFromSupabase(); } catch(e){}
-      }
-      ensureDepot();
-      const m = (data.depotMachines||[]).find(x => x.id === payload.machineId);
-      if(!m){
-        showToast('Machine non trouvée dans les données');
-        goTo('depot');
-        return;
-      }
-      // Naviguer vers dépôt et déclencher l'action
-      goTo('depot');
-      renderDepot();
-      if(!m.borrow){
-        promptDepotBorrow(m.id);
-      } else {
-        const myName = (data.settings.myProfile&&data.settings.myProfile.name) || '';
-        if(m.borrow.borrowerName === myName || m.borrow.borrowerId === (data.settings.myProfile&&data.settings.myProfile.id)){
-          promptDepotReturn(m.id);
-        } else {
-          showToast(`Cette machine est chez ${m.borrow.borrowerName}`);
-        }
-      }
-    };
-    doSyncThenAct();
+    showToast('La fonction Dépôt a été retirée de l\'application.');
     return;
   }
 
@@ -28712,20 +28772,51 @@ async function pullAllPointagesForComptable(){
       // Plus récent en premier — garantit que le dédoublon garde la version la plus à jour
       .sort((a,b) => new Date(b.updatedAt) - new Date(a.updatedAt));
 
-    // Dédoublonner : garder une seule entrée par utilisateur (authId prioritaire, sinon nom normalisé)
-    const seenUserKeys = new Map();
-    const deduplicated = [];
+    // Regrouper par utilisateur SANS perdre de pointages : on FUSIONNE les
+    // attendance de tous les appareils d'un même utilisateur, au lieu de ne
+    // garder qu'un seul appareil (ce qui faisait disparaître les fiches — et
+    // donc des ouvriers — enregistrées sur l'autre appareil du même compte).
+    const byUser = new Map();
     for(const device of parsed){
       const comptableAuthId = device.ownerAuthId.trim();
       const comptableNorm   = device.ownerName.trim().toLowerCase().replace(/\s+/g, ' ');
       const userKey = comptableAuthId || comptableNorm;
       if(!userKey) continue;
-      if(!seenUserKeys.has(userKey)){
-        seenUserKeys.set(userKey, true);
-        deduplicated.push(device);
+      if(!byUser.has(userKey)){
+        // Première source de cet utilisateur (la plus récente) : on la garde
+        // comme base, mais on va y fusionner les jours des appareils suivants.
+        byUser.set(userKey, {
+          ...device,
+          attendance: { ...(device.attendance || {}) },
+          sites: [ ...(device.sites || []) ],
+          workers: [ ...(device.workers || []) ]
+        });
+      } else {
+        // Appareil supplémentaire du même utilisateur : on fusionne ses jours.
+        const acc = byUser.get(userKey);
+        const older = device.attendance || {};
+        Object.keys(older).forEach(dateKey => {
+          if(!acc.attendance[dateKey]){
+            // Jour absent de la version récente → on l'ajoute (fiche récupérée)
+            acc.attendance[dateKey] = older[dateKey];
+          } else {
+            // Jour présent des deux côtés : fusionner les ouvriers du jour
+            const a = acc.attendance[dateKey];
+            const b = older[dateKey];
+            if(a && b && a.workers && b.workers){
+              acc.attendance[dateKey] = {
+                siteId: a.siteId != null ? a.siteId : b.siteId,
+                workers: Object.assign({}, b.workers, a.workers) // récent prioritaire
+              };
+            }
+          }
+        });
+        // Compléter sites/workers connus pour la résolution des noms
+        (device.sites||[]).forEach(s => { if(s && s.id && !acc.sites.some(x=>x.id===s.id)) acc.sites.push(s); });
+        (device.workers||[]).forEach(w => { if(w && w.id && !acc.workers.some(x=>x.id===w.id)) acc.workers.push(w); });
       }
-      // doublon ignoré — le premier (plus récent) est déjà gardé
     }
+    const deduplicated = Array.from(byUser.values());
 
     return deduplicated;
   } catch(e){
@@ -28821,6 +28912,115 @@ function _refreshAfterRoleSwitch(){
 
 
 const DEV_ACCESS_CODE = '31072021'; // code fourni par le developpeur
+
+/* ═══════════════════════════════════════════════════════════════════
+   MODULE — DevAccess  ·  début   (v2.38.0 — droits dynamiques)
+   Les droits développeur ne sont PLUS liés à un ID en dur. Ils reposent
+   sur un flag is_dev par utilisateur, stocké dans un canal Supabase
+   dédié (DEV_USERS_KEY = liste d'authId autorisés). Un dev coche/décoche
+   les utilisateurs dans le panneau (section "Gestion des accès Dev").
+   - Onglet nav "DEV" visible si l'utilisateur connecté a is_dev = true.
+   - Accès de secours : logo → code, toujours actif (inchangé).
+   Retrait : supprimer ce bloc + le bouton #devNavBtn + les accroches
+   devAccessRefresh()/devAccessApplyNav() + la section dans le panneau.
+   ═══════════════════════════════════════════════════════════════════ */
+const DEV_USERS_KEY = 'dev_users_v1'; // canal Supabase : { authIds: [...] }
+let _devUsersCache = null;            // liste d'authId dev (en mémoire)
+
+/* authId de l'utilisateur connecté (minuscules, sans espaces). */
+function devAccessCurrentUser(){
+  const a = data.settings && data.settings.auth && data.settings.auth.authId;
+  return (a || '').toString().trim().toLowerCase();
+}
+
+/* Récupère la liste des authId ayant le rôle dev (depuis Supabase). */
+async function devAccessFetchList(){
+  try{
+    const res = await supaFetch(
+      '/rest/v1/rwood_sync?user_id=eq.' + encodeURIComponent(DEV_USERS_KEY) + '&select=data',
+      { headers:{ 'Prefer':'' } }
+    );
+    if(!res.ok) return [];
+    const rows = await res.json();
+    if(!rows || !rows.length) return [];
+    const d = typeof rows[0].data === 'string' ? JSON.parse(rows[0].data) : rows[0].data;
+    const list = (d && Array.isArray(d.authIds)) ? d.authIds : [];
+    _devUsersCache = list.map(x => String(x).toLowerCase());
+    return _devUsersCache;
+  } catch(e){ return _devUsersCache || []; }
+}
+
+/* Enregistre la liste des authId dev (grave le flag en base). */
+async function devAccessSaveList(list){
+  const clean = Array.from(new Set((list||[]).map(x => String(x).toLowerCase()).filter(Boolean)));
+  _devUsersCache = clean;
+  await supaFetch('/rest/v1/rwood_sync', {
+    method: 'POST',
+    headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({
+      user_id: DEV_USERS_KEY, updated_at: new Date().toISOString(),
+      data: JSON.stringify({ authIds: clean })
+    })
+  });
+}
+
+/* L'utilisateur connecté a-t-il is_dev = true ? (depuis le cache). */
+function devAccessIsDevUser(){
+  const me = devAccessCurrentUser();
+  if(!me) return false;
+  return Array.isArray(_devUsersCache) && _devUsersCache.includes(me);
+}
+
+/* Coche/décoche le rôle dev d'un utilisateur (grave en base + rafraîchit). */
+async function devAccessToggleUser(authId, enabled){
+  const id = String(authId||'').trim().toLowerCase();
+  if(!id) return;
+  let list = await devAccessFetchList();
+  list = list.slice();
+  if(enabled){ if(!list.includes(id)) list.push(id); }
+  else { list = list.filter(x => x !== id); }
+  await devAccessSaveList(list);
+  devAccessApplyNav();     // maj immédiate de l'onglet (si je me suis modifié)
+  devAccessAutoUnlock();
+  showToast(enabled ? '✓ Rôle Dev accordé' : 'Rôle Dev retiré');
+  const el = document.getElementById('devPanelList');
+  if(el && _devCurrentTab === 'comptes' && typeof refreshDevPanel === 'function') refreshDevPanel();
+}
+
+/* Charge la liste dev puis applique nav + auto-unlock (au démarrage). */
+async function devAccessRefresh(){
+  await devAccessFetchList();
+  devAccessAutoUnlock();
+  devAccessApplyNav();
+}
+
+/* Auto-déverrouillage silencieux si l'utilisateur connecté est dev.
+   Ne s'exécute PAS si l'app est verrouillée (déconnexion en cours). */
+function devAccessAutoUnlock(){
+  if(typeof isAppLocked === 'function' && isAppLocked()) return;
+  if(devAccessIsDevUser()){
+    window._devRoleUnlocked = true;
+    if(data.settings && data.settings.auth) data.settings.auth.roleLocked = false;
+  }
+}
+
+/* Onglet "DEV" : visible seulement si is_dev = true pour l'utilisateur. */
+function devAccessApplyNav(){
+  const btn = document.getElementById('devNavBtn');
+  if(!btn) return;
+  btn.style.display = devAccessIsDevUser() ? '' : 'none';
+}
+
+/* Ouvre le panneau dev directement (sans code) depuis l'onglet. */
+function devAccessOpenPanel(){
+  if(!devAccessIsDevUser()) return; // garde stricte
+  window._devRoleUnlocked = true;
+  openModal('devPanel');
+  _devCurrentTab = 'chantiers';
+  switchDevTab('chantiers');
+  if(typeof comptaEditSyncToggle === 'function') comptaEditSyncToggle();
+}
+/* ═══ MODULE — DevAccess  ·  fin ═══ */
 const REVOKED_DEVICES_KEY = 'company_revoked_devices'; // cle Supabase fixe
 
 function openDevCodeModal(){
@@ -28885,6 +29085,7 @@ async function refreshDevPanel(){
 /* ── Onglet Comptes : tous les utilisateurs inscrits (registre USERS_REGISTRY_KEY) ── */
 async function _renderDevTabComptes(list){
   const users = await _fetchUsersRegistry();
+  const devList = (typeof devAccessFetchList === 'function') ? await devAccessFetchList() : []; // MODULE — DevAccess
   if(!users || !users.length){
     list.innerHTML = '<div class="hint" style="text-align:center;padding:20px 0;">Aucun utilisateur inscrit.<br><span style="font-size:12px;">Les comptes apparaissent ici dès qu\'un utilisateur crée son profil.</span></div>';
     return;
@@ -28897,8 +29098,11 @@ async function _renderDevTabComptes(list){
     <div class="hint" style="margin-bottom:10px;">
       ${sorted.length} utilisateur${sorted.length>1?'s':''} inscrit${sorted.length>1?'s':''}
       <span style="float:right;font-size:10px;opacity:0.6;">🗑 = registre + pointages</span>
-    </div>` +
-  sorted.map(u => `
+    </div>
+    <div style="font-size:12px;font-weight:700;color:var(--wood);margin:4px 0 10px;">🔑 Gestion des accès Dev — coche pour accorder le rôle développeur</div>` +
+  sorted.map(u => {
+    const isDev = Array.isArray(devList) && devList.includes(String(u.authId||'').toLowerCase());
+    return `
     <div class="card" style="margin-bottom:8px;">
       <div style="display:flex; align-items:center; gap:10px;">
         <span style="font-size:22px; flex-shrink:0;">${roleIcon[u.role]||'👤'}</span>
@@ -28913,8 +29117,14 @@ async function _renderDevTabComptes(list){
         <button class="btn btn-outline btn-sm" style="color:var(--red);border-color:var(--red);flex-shrink:0;"
           onclick="confirmDeleteUserFull('${escapeHtml(u.authId)}','${escapeHtml(u.name||'?')}')">🗑</button>
       </div>
-    </div>
-  `).join('');
+      <label style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:10px; padding-top:10px; border-top:1px solid var(--line); cursor:pointer;">
+        <span style="font-size:13px;font-weight:600;">${isDev ? '🛠️ ' : ''}Rôle Développeur</span>
+        <input type="checkbox" ${isDev?'checked':''} ${u.authId?'':'disabled'}
+          style="width:24px;height:24px;accent-color:var(--wood);flex-shrink:0;"
+          onchange="devAccessToggleUser('${escapeHtml(u.authId||'')}', this.checked)">
+      </label>
+    </div>`;
+  }).join('');
 }
 
 async function confirmDeleteUserFull(authId, name){
@@ -29254,6 +29464,24 @@ async function _addDeletedSiteId(siteId){
         user_id: DELETED_SITES_KEY,
         updated_at: new Date().toISOString(),
         data: JSON.stringify({ ids })
+      })
+    });
+  } catch(e){ /* silencieux */ }
+}
+
+/* Retire un id de la liste des tombstones (utilisé à la restauration dev). */
+async function _removeDeletedSiteId(siteId){
+  try{
+    const ids = await _fetchDeletedSiteIds();
+    if(!ids.includes(siteId)) return;
+    const next = ids.filter(x => x !== siteId);
+    await supaFetch('/rest/v1/rwood_sync', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({
+        user_id: DELETED_SITES_KEY,
+        updated_at: new Date().toISOString(),
+        data: JSON.stringify({ ids: next })
       })
     });
   } catch(e){ /* silencieux */ }
@@ -30198,6 +30426,327 @@ async function pullSharedSites(){
 
 /* Ouvre la selection d'un chef d'equipe (parmi les contacts) pour assigner un chantier */
 let _assignChefCandidates = [];
+
+/* ═══════════════════════════════════════════════════════════════════
+   MODULE — SyncAllSites  ·  début
+   Objectif : TOUT LE MONDE voit TOUS les chantiers de l'entreprise.
+   - Push universel : pousse tous les chantiers locaux vers la clé
+     partagée (SHARED_SITES_KEY), pas seulement ceux marqués syncLive.
+   - Pull universel : tous les rôles (ouvrier inclus) récupèrent la
+     liste partagée complète et la fusionnent dans data.sites.
+   N'écrase jamais une saisie locale sensible : fusionne les champs
+   d'identité du chantier. Débrayable : supprimer ce bloc + les 2
+   accroches (syncAllSitesPushAll / syncAllSitesPull) dans les hooks.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Pousse TOUS les chantiers locaux vers la synchro partagée. */
+async function syncAllSitesPushAll(){
+  try{
+    if(!Array.isArray(data.sites) || !data.sites.length) return;
+    const deletedIds = (typeof _fetchDeletedSiteIds === 'function') ? await _fetchDeletedSiteIds() : [];
+    const shared = await _fetchSharedSites();
+    const byId = {};
+    shared.forEach(s => { if(s && s.id) byId[s.id] = s; });
+
+    let touched = false;
+    // Union médias/docs entre notre version et celle déjà partagée.
+    const _mergeMedia = (a, b) => {
+      const out = [], seen = new Set();
+      const keyOf = (m) => (m && (m.id || m.url || m.data || m.name)) || JSON.stringify(m);
+      [ ...(Array.isArray(a)?a:[]), ...(Array.isArray(b)?b:[]) ].forEach(m => {
+        const k = keyOf(m); if(seen.has(k)) return; seen.add(k); out.push(m);
+      });
+      return out;
+    };
+    data.sites.forEach(site => {
+      if(!site || !site.id) return;
+      if(deletedIds.includes(site.id)) return;         // supprimé définitivement : on ne repousse pas
+      const existing = byId[site.id];
+      // Médias/docs : union entre le local et ce qui est déjà sur le serveur,
+      // pour ne JAMAIS faire disparaître un document ajouté par un autre appareil.
+      const mergedMedia = _mergeMedia(site.sharedMedia, existing && existing.sharedMedia);
+      const mergedDocs  = _mergeMedia(site.documents,   existing && existing.documents);
+      const snapshot = {
+        id: site.id, name: site.name, address: site.address, status: site.status,
+        progress: site.progress, color: site.color, trajetZone: site.trajetZone,
+        keyboxCode: site.keyboxCode || '', startDate: site.startDate || null,
+        dueDate: site.dueDate || null, deliveryDates: site.deliveryDates || [],
+        customEvents: site.customEvents || [], ownerDeviceId: site.ownerDeviceId || getDeviceSyncId(),
+        syncLive: true, // [syncall] tous les chantiers deviennent visibles/synchronisés
+        lastSyncAt: new Date().toISOString(),
+        assignedTeamName: site.assignedTeamName || '',
+        assignedChefs: Array.isArray(site.assignedChefs) ? site.assignedChefs : [],
+        assignedChefContactId: site.assignedChefContactId || null,
+        assignedChefPhone: site.assignedChefPhone || '', assignedChefName: site.assignedChefName || '',
+        assignedChefAuthId: site.assignedChefAuthId || '', assignedAt: site.assignedAt || null,
+        teamName: site.teamName || '',
+        sharedMedia: mergedMedia,
+        documents: mergedDocs,
+        assignedWorkers: Array.isArray(site.assignedWorkers) ? site.assignedWorkers : []
+      };
+      // On écrit toujours la version fusionnée (identité à jour + union des médias).
+      byId[site.id] = existing ? Object.assign({}, existing, snapshot) : snapshot;
+      touched = true;
+    });
+
+    if(touched){
+      await _saveSharedSites(Object.values(byId));
+    }
+  } catch(e){ /* silencieux */ }
+}
+
+/* Récupère TOUS les chantiers partagés (tous rôles) et les fusionne. */
+async function syncAllSitesPull(){
+  try{
+    const deletedIds = (typeof _fetchDeletedSiteIds === 'function') ? await _fetchDeletedSiteIds() : [];
+    // Nettoyer les tombstoned encore présents localement
+    if(deletedIds.length){
+      const before = data.sites.length;
+      data.sites = data.sites.filter(s => !deletedIds.includes(s.id));
+      if(data.sites.length !== before) saveData();
+    }
+
+    const shared = await _fetchSharedSites();
+    const relevant = shared.filter(s => s && s.id && !deletedIds.includes(s.id));
+    if(!relevant.length) return;
+
+    const identityFields = ['name','address','status','progress','color','keyboxCode',
+      'startDate','dueDate','deliveryDates','customEvents','trajetZone','teamName',
+      'assignedChefs','assignedChefPhone','assignedChefName','assignedChefAuthId',
+      'assignedTeamName','lastSyncAt','ownerDeviceId'];
+    // NB : 'sharedMedia' et 'documents' sont VOLONTAIREMENT exclus ci-dessus.
+    // Ils ne sont jamais écrasés : on en fait l'UNION (voir _mergeSiteMedia)
+    // pour qu'un document/photo n'disparaisse jamais lors d'une synchro.
+
+    // Fusion union de deux listes de médias/documents, dédupliquée par id (ou url/data).
+    const _mergeSiteMedia = (a, b) => {
+      const out = [];
+      const seen = new Set();
+      const keyOf = (m) => (m && (m.id || m.url || m.data || m.name)) || JSON.stringify(m);
+      [ ...(Array.isArray(a)?a:[]), ...(Array.isArray(b)?b:[]) ].forEach(m => {
+        const k = keyOf(m);
+        if(seen.has(k)) return;
+        seen.add(k);
+        out.push(m);
+      });
+      return out;
+    };
+
+    let changed = false;
+    relevant.forEach(remote => {
+      const idx = data.sites.findIndex(s => s.id === remote.id);
+      if(idx === -1){
+        // Nouveau chantier reçu : copie locale visible par tous
+        data.sites.push({ ...remote, shared:true, stockNeeds:{}, stockTaken:{} });
+        changed = true;
+      } else {
+        // Chantier déjà présent : on rafraîchit son identité si la version
+        // distante est plus récente, sans toucher aux données locales de stock.
+        const local = data.sites[idx];
+        const remoteTs = Date.parse(remote.lastSyncAt || 0) || 0;
+        const localTs  = Date.parse(local.lastSyncAt || 0) || 0;
+        const iAmOwner = (local.ownerDeviceId || '') === getDeviceSyncId();
+
+        // Médias/documents : TOUJOURS fusionnés en union (jamais écrasés),
+        // quel que soit le propriétaire ou l'horodatage.
+        const mergedMedia = _mergeSiteMedia(local.sharedMedia, remote.sharedMedia);
+        const mergedDocs  = _mergeSiteMedia(local.documents, remote.documents);
+        if(mergedMedia.length !== (local.sharedMedia||[]).length){ local.sharedMedia = mergedMedia; changed = true; }
+        else { local.sharedMedia = mergedMedia; }
+        if(mergedDocs.length !== (local.documents||[]).length){ local.documents = mergedDocs; changed = true; }
+        else { local.documents = mergedDocs; }
+
+        if(!iAmOwner && remoteTs >= localTs){
+          identityFields.forEach(k => { if(remote[k] !== undefined) local[k] = remote[k]; });
+          local.shared = true;
+          changed = true;
+        } else if(!local.shared){
+          local.shared = true;
+          changed = true;
+        }
+      }
+    });
+
+    if(changed){
+      saveData();
+      const chantiersView = document.getElementById('view-chantiers');
+      if(chantiersView && chantiersView.classList.contains('active') && typeof renderSites === 'function') renderSites();
+    }
+  } catch(e){ /* silencieux */ }
+}
+
+/* Cycle complet : je pousse mes chantiers, puis je récupère ceux des autres. */
+async function syncAllSitesCycle(){
+  await syncAllSitesPushAll();
+  await syncAllSitesPull();
+}
+
+/* Polling léger + au démarrage + au retour au premier plan. */
+let _syncAllSitesTimer = null;
+function syncAllSitesStart(){
+  if(_syncAllSitesTimer) return;
+  setTimeout(syncAllSitesCycle, 3000);                 // au démarrage
+  _syncAllSitesTimer = setInterval(syncAllSitesCycle, 30000); // toutes les 30 s
+  document.addEventListener('visibilitychange', () => {
+    if(document.visibilityState === 'visible') syncAllSitesCycle();
+  });
+}
+document.addEventListener('DOMContentLoaded', () => setTimeout(syncAllSitesStart, 3500));
+/* ═══ MODULE — SyncAllSites  ·  fin ═══ */
+
+/* ═══════════════════════════════════════════════════════════════════
+   MODULE — DevSiteAlerts  ·  début
+   1) Alerte : chaque création de chantier par un utilisateur pose une
+      alerte dans un canal Supabase dédié (DEV_SITE_ALERTS_KEY), lue
+      uniquement dans le Mode Développeur (invisible pour les autres).
+   2) Force-sync : bouton dev qui pousse data.sites vers TOUS via le
+      canal partagé, en contournant les conditions locales.
+   Retrait : supprimer ce bloc + les appels devSiteAlertRaise() aux
+   points de création + le rendu dans devChantiersRender.
+   ═══════════════════════════════════════════════════════════════════ */
+const DEV_SITE_ALERTS_KEY = 'dev_site_alerts_v1';
+
+/* Pose une alerte "nouveau chantier créé" sur le canal dev (best effort). */
+async function devSiteAlertRaise(site){
+  try{
+    if(!site || !site.id) return;
+    const prof = (data.settings && data.settings.myProfile) || {};
+    const who = prof.authId || ((prof.firstName||'') + '.' + (prof.lastName||'')).toLowerCase() || 'inconnu';
+    const alert = {
+      id: site.id,
+      user: who,
+      role: prof.role || '',
+      name: site.name || '(sans nom)',
+      address: site.address || '',
+      ts: Date.now()
+    };
+    // Récupère la liste existante, ajoute (dédup par site.id, garde le plus récent)
+    let list = await devSiteAlertsFetch();
+    list = list.filter(a => a.id !== alert.id);
+    list.unshift(alert);
+    if(list.length > 100) list = list.slice(0, 100); // borne
+    await supaFetch('/rest/v1/rwood_sync', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({
+        user_id: DEV_SITE_ALERTS_KEY,
+        updated_at: new Date().toISOString(),
+        data: JSON.stringify({ alerts: list })
+      })
+    });
+  } catch(e){ /* silencieux : l'alerte ne doit jamais bloquer la création */ }
+}
+
+/* Lit les alertes dev (retourne un tableau, jamais null). */
+async function devSiteAlertsFetch(){
+  try{
+    const res = await supaFetch(
+      '/rest/v1/rwood_sync?user_id=eq.' + encodeURIComponent(DEV_SITE_ALERTS_KEY) + '&select=data',
+      { headers:{ 'Prefer':'' } }
+    );
+    if(!res.ok) return [];
+    const rows = await res.json();
+    if(!rows || !rows.length) return [];
+    const d = typeof rows[0].data === 'string' ? JSON.parse(rows[0].data) : rows[0].data;
+    return (d && Array.isArray(d.alerts)) ? d.alerts : [];
+  } catch(e){ return []; }
+}
+
+/* Efface une alerte (dev l'a traitée). */
+async function devSiteAlertDismiss(siteId){
+  try{
+    let list = await devSiteAlertsFetch();
+    list = list.filter(a => a.id !== siteId);
+    await supaFetch('/rest/v1/rwood_sync', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({
+        user_id: DEV_SITE_ALERTS_KEY, updated_at: new Date().toISOString(),
+        data: JSON.stringify({ alerts: list })
+      })
+    });
+  } catch(e){}
+  const el = document.getElementById('devPanelList');
+  if(el && typeof devChantiersRender === 'function') devChantiersRender(el);
+}
+
+/* Efface toutes les alertes. */
+async function devSiteAlertsClearAll(){
+  try{
+    await supaFetch('/rest/v1/rwood_sync', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({
+        user_id: DEV_SITE_ALERTS_KEY, updated_at: new Date().toISOString(),
+        data: JSON.stringify({ alerts: [] })
+      })
+    });
+  } catch(e){}
+  showToast('Alertes effacées');
+  const el = document.getElementById('devPanelList');
+  if(el && typeof devChantiersRender === 'function') devChantiersRender(el);
+}
+
+/* ⚡ FORCE-SYNC : pousse data.sites vers TOUS (canal partagé), en
+   contournant les conditions locales, puis re-tire pour cohérence. */
+async function devForceSyncAllSites(){
+  const btn = document.getElementById('devForceSyncBtn');
+  if(!confirm('Forcer la re-synchronisation de TOUS les chantiers vers tous les utilisateurs ?\n\nCela réécrit la liste partagée depuis cet appareil.')) return;
+  if(btn){ btn.disabled = true; btn.textContent = '⏳ Synchronisation…'; }
+  try{
+    if(!navigator.onLine){ showToast('⚠️ Hors ligne'); return; }
+    // 1) Récupère les tombstones pour ne pas ressusciter des chantiers supprimés
+    const deletedIds = (typeof _fetchDeletedSiteIds === 'function') ? await _fetchDeletedSiteIds() : [];
+    // 2) Construit la liste propre depuis data.sites (source dev de vérité)
+    const clean = (data.sites || []).filter(s => s && s.id && !deletedIds.includes(s.id));
+    // 3) Écrase la clé partagée avec cette liste (force l'écriture globale)
+    if(typeof _saveSharedSites === 'function'){
+      await _saveSharedSites(clean.map(s => Object.assign({}, s, {
+        syncLive: true, lastSyncAt: new Date().toISOString()
+      })));
+    }
+    // 4) Push/pull massif via le module SyncAllSites pour redistribuer
+    if(typeof syncAllSitesPushAll === 'function') await syncAllSitesPushAll();
+    if(typeof syncAllSitesPull === 'function') await syncAllSitesPull();
+    showToast('⚡ Re-synchronisation forcée effectuée');
+  } catch(e){
+    showToast('⚠️ Échec de la synchro forcée');
+  } finally {
+    if(btn){ btn.disabled = false; btn.textContent = '⚡ Forcer la re-synchronisation globale'; }
+    const el = document.getElementById('devPanelList');
+    if(el && typeof devChantiersRender === 'function') devChantiersRender(el);
+  }
+}
+
+/* Rend le bandeau d'alertes + le bouton force-sync en tête du panneau dev. */
+async function devSiteAlertsRenderInto(container){
+  const alerts = await devSiteAlertsFetch();
+  const alertsHtml = alerts.length ? `
+    <div style="margin-bottom:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <span style="font-size:13px;font-weight:700;color:#E07A63;">🔔 Nouveaux chantiers (${alerts.length})</span>
+        <button class="btn btn-outline btn-sm" onclick="devSiteAlertsClearAll()">Tout effacer</button>
+      </div>
+      ${alerts.map(a => `
+        <div style="background:#E07A6318;border:1px solid #E07A6355;border-radius:10px;padding:8px 10px;margin-bottom:6px;font-size:12px;">
+          <div style="display:flex;justify-content:space-between;gap:8px;">
+            <span style="line-height:1.4;">⚠️ Ajouté par <b>${escapeHtml(a.user)}</b>${a.role?' ('+escapeHtml(a.role)+')':''} :<br><b>${escapeHtml(a.name)}</b>${a.address?' — '+escapeHtml(a.address):''}</span>
+            <button onclick="devSiteAlertDismiss('${a.id}')" style="background:none;border:none;color:var(--ink-soft);font-size:18px;cursor:pointer;flex-shrink:0;">×</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>` : '';
+
+  const syncBtn = `
+    <button id="devForceSyncBtn" class="btn btn-block" style="background:#C0392B;color:#fff;font-weight:700;margin-bottom:14px;" onclick="devForceSyncAllSites()">
+      ⚡ Forcer la re-synchronisation globale
+    </button>`;
+
+  const wrap = document.createElement('div');
+  wrap.innerHTML = alertsHtml + syncBtn;
+  container.prepend(wrap);
+}
+/* ═══ MODULE — DevSiteAlerts  ·  fin ═══ */
 
 async function assignChefToSite(siteId){
   const site = data.sites.find(s => s.id === siteId);
@@ -31468,6 +32017,9 @@ function _suiviAggregate(sources){
           if(cov){ entry = cov.entry; ed = cov.ed; }
         }
         if(!entry) return;
+        // [typejournee] Les absences (CP, CSS, férié, maladie) ne comptent
+        // PAS dans les heures de production d'un chantier. On ignore la fiche.
+        if(typeof typeJourneeIsAbsence === 'function' && typeJourneeIsAbsence(entry.typeJournee)) return;
         const rawSiteId = ed.siteId || siteId;
         if(!rawSiteId) return;              // toujours aucun chantier (même après correction) : ignoré
         if(!sitesById[rawSiteId]) return;   // chantier inconnu : ignoré
@@ -32060,12 +32612,17 @@ async function devChantiersRender(container){
 
   if(_devChantiersView === 'trash'){
     container.innerHTML = header + _devChantiersRenderTrash(trash);
+    if(typeof devSiteAlertsRenderInto === 'function'){ try{ await devSiteAlertsRenderInto(container); }catch(e){} }
     return;
   }
 
   container.innerHTML = header + '<div class="hint" style="text-align:center;padding:16px 0;">Chargement des chantiers…</div>';
   const sites = await _devChantiersCollect();
-  if(!sites.length){ container.innerHTML = header + '<div class="hint" style="text-align:center;padding:20px 0;">Aucun chantier en base.</div>'; return; }
+  if(!sites.length){
+    container.innerHTML = header + '<div class="hint" style="text-align:center;padding:20px 0;">Aucun chantier en base.</div>';
+    if(typeof devSiteAlertsRenderInto === 'function'){ try{ await devSiteAlertsRenderInto(container); }catch(e){} }
+    return;
+  }
 
   const rows = sites.sort((a,b)=>(a.name||'').localeCompare(b.name||'')).map(s => {
     const media = Array.isArray(s.sharedMedia)?s.sharedMedia.length:0;
@@ -32078,6 +32635,7 @@ async function devChantiersRender(container){
       + '</div>';
   }).join('');
   container.innerHTML = header + rows;
+  if(typeof devSiteAlertsRenderInto === 'function'){ try{ await devSiteAlertsRenderInto(container); }catch(e){} }
 }
 
 function _devChantiersRenderTrash(trash){
@@ -32118,6 +32676,9 @@ async function devChantiersToTrash(siteId){
   data.sites = (data.sites||[]).filter(x=>x.id!==siteId);
   saveData();
   await _devChantiersRemoveFromSharedStores(siteId);
+  // [syncall] Poser un tombstone : empêche que SyncAllSites (ou un autre
+  // appareil ayant encore ce chantier en local) ne le repousse aussitôt.
+  if(typeof _addDeletedSiteId === 'function'){ try{ await _addDeletedSiteId(siteId); }catch(e){} }
 
   showToast('🗑 Envoyé à la corbeille');
   const list = document.getElementById('devPanelList');
@@ -32153,14 +32714,16 @@ async function devChantiersRestore(siteId){
   const item = trash.find(t=>t.snapshot && t.snapshot.id===siteId);
   if(!item){ showToast('Introuvable en corbeille'); return; }
   const snap = item.snapshot;
+  // [syncall] Lever le tombstone AVANT de republier, sinon la restauration
+  // serait aussitôt annulée par le filtre "supprimé définitivement".
+  if(typeof _removeDeletedSiteId === 'function'){ try{ await _removeDeletedSiteId(snap.id); }catch(e){} }
   if(!(data.sites||[]).some(s=>s.id===snap.id)){ data.sites.push({ ...snap }); }
   // retire de la corbeille
   data.settings.devChantiersTrash = trash.filter(t=>!(t.snapshot && t.snapshot.id===siteId));
   saveData();
-  // republie vers la clé chefs si c'était un chantier partagé
-  if(typeof pushSiteFromChefToConducteur === 'function' || typeof pushSharedSite === 'function'){
-    try{ if(typeof pushSharedSite === 'function') await pushSharedSite(data.sites.find(s=>s.id===snap.id)); }catch(e){}
-  }
+  // republie vers la synchro partagée
+  try{ if(typeof pushSharedSite === 'function') await pushSharedSite(data.sites.find(s=>s.id===snap.id)); }catch(e){}
+  if(typeof syncAllSitesCycle === 'function'){ try{ await syncAllSitesCycle(); }catch(e){} }
   showToast('↩️ Chantier restauré');
   const list = document.getElementById('devPanelList');
   if(list) devChantiersRender(list);
@@ -32316,12 +32879,28 @@ function comptaEditSyncToggle(){
 /* [comptaedit] Applique le calque à une cellule (appelé depuis le calcul
    semaine/mois comptable). Renvoie {entry, ed} corrigés, ou null. */
 function comptaEditApplyOverride(deviceId, workerId, dateKey, entry, ed){
-  const ov = _comptaEditOverrides()[_comptaEditKey(deviceId, workerId, dateKey)];
+  const all = _comptaEditOverrides();
+  let ov = all[_comptaEditKey(deviceId, workerId, dateKey)];
+  // Fallback : si le deviceId a changé (fusion des appareils d'un même
+  // utilisateur), on retrouve la correction par workerId + dateKey. Sans ça,
+  // la correction "saute" quand la source du pull change de deviceId.
+  if(!ov){
+    const suffix = '::' + workerId + '::' + dateKey;
+    let best = null;
+    Object.keys(all).forEach(k => {
+      if(k.endsWith(suffix)){
+        const cand = all[k];
+        if(!best || (cand.ts||0) > (best.ts||0)) best = cand;
+      }
+    });
+    ov = best;
+  }
   if(!ov) return null;
   const newEntry = Object.assign({}, entry || {}, {
     hours:  (ov.hours  != null ? ov.hours  : (entry ? entry.hours  : '')),
     task:   (ov.task   != null ? ov.task   : (entry ? entry.task   : '')),
-    panier: (ov.panier != null ? ov.panier : (entry ? entry.panier : false))
+    panier: (ov.panier != null ? ov.panier : (entry ? entry.panier : false)),
+    typeJournee: (ov.typeJournee != null ? ov.typeJournee : (entry ? entry.typeJournee : 'normal'))
   });
   const newEd = Object.assign({}, ed || {}, {
     siteId: (ov.siteId != null ? ov.siteId : (ed ? ed.siteId : null)),
@@ -32347,6 +32926,11 @@ function comptaEditOpen(deviceId, workerId, dateKey){
   document.getElementById('comptaEditSub').textContent =
     (aw ? aw.name : 'Ouvrier') + ' · ' + dateKey;
   document.getElementById('comptaEditHours').value = entry && entry.hours != null ? entry.hours : '';
+  // [typejournee] sélecteur type de journée (défaut normal)
+  const tjSel = document.getElementById('comptaEditTypeJournee');
+  if(tjSel && typeof _typeJourneeOptions === 'function'){
+    tjSel.innerHTML = _typeJourneeOptions((entry && entry.typeJournee) || 'normal');
+  }
 
   // Sélecteur chantier — liste OFFICIELLE synchronisée uniquement (filtre strict)
   const siteSel = document.getElementById('comptaEditSite');
@@ -32454,6 +33038,9 @@ async function comptaEditSave(){
   const hours = hoursRaw === '' ? '' : String(parseFloat(hoursRaw.replace(',','.')) || 0);
   const task = document.getElementById('comptaEditTask').value.trim();
   const panier = document.getElementById('comptaEditPanier').checked;
+  // [typejournee] type de journée corrigé par la comptable
+  const tjEl = document.getElementById('comptaEditTypeJournee');
+  const typeJournee = tjEl ? tjEl.value : 'normal';
 
   // Chantier : le select ne renvoie QUE des valeurs officielles.
   //  - '' (option neutre)  → aucun chantier assigné
@@ -32461,7 +33048,7 @@ async function comptaEditSave(){
   // (l'ancien nom libre "__free__" est disabled, donc jamais renvoyé ici)
   const rawSel = document.getElementById('comptaEditSite').value;
   const ov = _comptaEditOverrides();
-  const ovData = { hours, task, panier, ts: Date.now() };
+  const ovData = { hours, task, panier, typeJournee, ts: Date.now() };
   if(rawSel && rawSel !== '__free__'){
     const chosen = _comptaEditAllSites().find(s => s.id === rawSel);
     ovData.siteId = rawSel;                              // ID synchronisé officiel
@@ -32469,9 +33056,14 @@ async function comptaEditSave(){
   } else if(rawSel === ''){
     ovData.siteId = null;                                // remis à "aucun chantier"
   }
-  ov[_comptaEditKey(deviceId, workerId, dateKey)] = Object.assign(
-    ov[_comptaEditKey(deviceId, workerId, dateKey)] || {}, ovData
-  );
+  const key = _comptaEditKey(deviceId, workerId, dateKey);
+  const prev = ov[key] || {};
+  // La correction comptable prime TOUJOURS : on fusionne avec l'existant et
+  // on force un ts strictement supérieur à toute version connue (locale ou
+  // reçue), pour qu'aucun pull ultérieur ne puisse la faire "sauter".
+  const newTs = Math.max(Date.now(), (prev.ts || 0) + 1);
+  ovData.ts = newTs;
+  ov[key] = Object.assign({}, prev, ovData);
 
   saveData();
   closeModal('comptaEdit');
@@ -32484,7 +33076,10 @@ async function comptaEditSave(){
   }
   // Actualiser le Suivi pour que les heures migrent vers le bon chantier
   if(typeof suiviRefresh === 'function'){ try{ suiviRefresh(true); }catch(e){} }
-  comptaEditPush(); // partage la correction
+
+  // Pousse la correction, PUIS re-render : le push ne doit pas être annulé
+  // par un pull concurrent (le ts forcé ci-dessus garantit la priorité).
+  try{ await comptaEditPush(); }catch(e){}
 }
 
 /* Réinitialise une correction (revient à la fiche brute de l'ouvrier). */
@@ -32532,11 +33127,13 @@ async function comptaEditPull(){
     if(!rows || !rows.length) return false;
     const remote = typeof rows[0].data === 'string' ? JSON.parse(rows[0].data) : rows[0].data;
     if(!remote || !remote.overrides) return false;
-    // Fusion : l'override le plus récent (ts) gagne
+    // Fusion : l'override le plus récent (ts) gagne. STRICTEMENT supérieur —
+    // à ts égal on garde le LOCAL, pour ne jamais faire "sauter" une
+    // correction qu'on vient d'appliquer sur cet appareil.
     const local = _comptaEditOverrides();
     Object.keys(remote.overrides).forEach(k => {
       const r = remote.overrides[k], l = local[k];
-      if(!l || (r.ts||0) >= (l.ts||0)) local[k] = r;
+      if(!l || (r.ts||0) > (l.ts||0)) local[k] = r;
     });
     saveData(true);
     return true;
@@ -32873,6 +33470,36 @@ async function comptaEditEnsurePulled(){
   </div>
 </div>
 
+<!-- MODAL : Confirmation suppression photos (Galerie) -->
+<div class="modal-overlay" id="modal-galerieDelete">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Supprimer les photos</h2>
+      <button class="modal-close" onclick="closeModal('galerieDelete')">×</button>
+    </div>
+    <div class="hint" style="margin-bottom:16px;">Les photos sélectionnées seront retirées pour toute l'équipe. Action irréversible.</div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn btn-outline" style="flex:1;" onclick="closeModal('galerieDelete')">Annuler</button>
+      <button class="btn btn-primary" style="flex:1;background:var(--red);border-color:var(--red);" onclick="galerieDeleteConfirmed()">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL : Confirmation de déconnexion (remplace confirm() bloqué en PWA) -->
+<div class="modal-overlay" id="modal-disconnect">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Se déconnecter</h2>
+      <button class="modal-close" onclick="closeModal('disconnect')">×</button>
+    </div>
+    <div class="hint" style="margin-bottom:16px;">Tu devras te reconnecter avec ton identifiant et ton mot de passe.</div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn btn-outline" style="flex:1;" onclick="closeModal('disconnect')">Annuler</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="disconnectAppConfirmed()">Se déconnecter</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL : Sélection ouvriers pour PDF fiches d'heures -->
 <div class="modal-overlay" id="modal-pdfWorkerSelector">
   <div class="modal" style="max-height:90vh;">
@@ -32971,6 +33598,7 @@ async function comptaEditEnsurePulled(){
       <div class="hint" style="margin-top:6px;">Si activé, la comptable peut corriger heures, tâche, chantier et panier de toutes les fiches. Les corrections priment et sont partagées. Décoche pour repasser en lecture seule.</div>
     </div>
 
+    <!-- Onglets Comptes / Pointages / Machines -->
     <!-- MODULE — CompanyCode : code entreprise (visible/modifiable en dev) -->
     <div class="card" style="margin-bottom:12px; border:1px solid var(--wood);">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
@@ -32983,7 +33611,6 @@ async function comptaEditEnsurePulled(){
       <div class="hint" style="margin-top:8px;">Ce code isole les données de l'entreprise. Le patron le communique à ses ouvriers. Le modifier renomme l'entreprise actuelle et migre ses données.</div>
     </div>
 
-    <!-- Onglets Comptes / Pointages / Machines -->
     <div style="display:flex; gap:6px; margin-bottom:12px;">
       <button id="devTabComptes" class="btn btn-primary" style="flex:1;font-size:12px;" onclick="switchDevTab('comptes')">👥 Comptes</button>
       <button id="devTabPointages" class="btn btn-outline" style="flex:1;font-size:12px;" onclick="switchDevTab('pointages')">⏱ Pointages</button>
