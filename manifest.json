@@ -1,6 +1,6 @@
 {
-  "name": "RWOOD Log — Carnet de chantier",
-  "short_name": "RWOOD Log",
+  "name": "RWOOD — Carnet de chantier",
+  "short_name": "RWOOD",
   "description": "Carnet de chantier pour équipe de charpente : suivi de chantiers, pointage, stock camion et fiches d'heures.",
   "start_url": "./index.html",
   "scope": "./",
