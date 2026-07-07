@@ -7503,15 +7503,17 @@ function stopSyncPolling(){
 async function _fetchCompanyName(code){
   if(!code) return null;
   try{
-    const res = await supaFetch(
-      '/rest/v1/rwood_sync?user_id=eq.' + encodeURIComponent('dev_companies_registry') + '&select=data',
-      { headers:{ 'Prefer':'' } }
+    // Bypass supaFetch : la clé du registre est globale, jamais préfixée
+    const res = await fetch(
+      SUPA_URL + '/rest/v1/rwood_sync?user_id=eq.' + encodeURIComponent(COMPANIES_REGISTRY_KEY) + '&select=data',
+      { headers:{ 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Prefer': '' } }
     );
     if(!res.ok) return null;
     const rows = await res.json();
     if(!rows || !rows.length) return null;
-    const registry = JSON.parse(rows[0].data || '[]');
-    const match = registry.find(c => c.code === code);
+    const d = typeof rows[0].data === 'string' ? JSON.parse(rows[0].data) : rows[0].data;
+    const companies = (d && d.companies) || [];
+    const match = companies.find(c => c.code === code);
     return match ? match.name : null;
   } catch(e){ return null; }
 }
@@ -23672,7 +23674,7 @@ function navManagerToggle(view, visible){
    2. Ajouter un objet en tête du tableau CHANGELOG
    ══════════════════════════════════════════════════════ */
 
-const APP_VERSION = '1.5.3';
+const APP_VERSION = '1.5.4';
 
 const CHANGELOG = [
   {
@@ -29775,7 +29777,7 @@ async function _removeDeletedSiteId(siteId){
    CODE CREATOR — generation de Code Entreprise (Mode Developpeur)
    Cle dediee, totalement separee des donnees clients.
    ═══════════════════════════════════════════════════════════════════ */
-const COMPANIES_REGISTRY_KEY = 'dev_companies_registry';
+/* COMPANIES_REGISTRY_KEY définie plus haut dans le module EntrepriseParams */
 
 /* ═══════════════════════════════════════════════════════════════════
    REGISTRE DES UTILISATEURS — permet à un conducteur de retrouver les
@@ -29958,9 +29960,16 @@ async function fetchChefsForMyCompany(){
   return users.filter(u => u.role === 'chef');
 }
 
+/* Clé globale du registre — JAMAIS préfixée par un code entreprise.
+   On bypasse supaFetch (qui préfixe) et on appelle fetch directement. */
+const COMPANIES_REGISTRY_KEY = 'dev_companies_registry';
+
 async function _fetchCompaniesRegistry(){
   try{
-    const res = await supaFetch('/rest/v1/rwood_sync?user_id=eq.' + encodeURIComponent(COMPANIES_REGISTRY_KEY) + '&select=data', { headers:{'Prefer':''} });
+    const res = await fetch(
+      SUPA_URL + '/rest/v1/rwood_sync?user_id=eq.' + encodeURIComponent(COMPANIES_REGISTRY_KEY) + '&select=data',
+      { headers:{ 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Prefer': '' } }
+    );
     if(!res.ok) return [];
     const rows = await res.json();
     if(!rows || !rows.length) return [];
@@ -29970,9 +29979,14 @@ async function _fetchCompaniesRegistry(){
 }
 
 async function _saveCompaniesRegistry(companies){
-  await supaFetch('/rest/v1/rwood_sync', {
+  await fetch(SUPA_URL + '/rest/v1/rwood_sync', {
     method: 'POST',
-    headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+    headers: {
+      'apikey': SUPA_KEY,
+      'Authorization': 'Bearer ' + SUPA_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'resolution=merge-duplicates,return=minimal'
+    },
     body: JSON.stringify({
       user_id: COMPANIES_REGISTRY_KEY,
       updated_at: new Date().toISOString(),
