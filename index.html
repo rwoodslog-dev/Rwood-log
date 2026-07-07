@@ -7543,28 +7543,26 @@ async function _renderParamCompanyInfo(){
 }
 
 async function switchCompanyCode(){
-  const input   = document.getElementById('paramNewCompanyCode');
-  const errEl   = document.getElementById('paramCompanySwitchError');
-  const newCode = (input ? input.value.trim().toUpperCase() : '');
+  const input  = document.getElementById('paramNewCompanyCode');
+  const errEl  = document.getElementById('paramCompanySwitchError');
 
-  errEl.style.display = 'none';
+  const showErr = (msg) => {
+    if(errEl){ errEl.textContent = msg; errEl.style.display = 'block'; }
+    else showToast('⚠️ ' + msg);
+  };
 
-  if(newCode.length < 3){
-    errEl.textContent = 'Code trop court (3 caractères minimum)';
-    errEl.style.display = 'block';
-    return;
-  }
-  if(newCode === companyGetCode()){
-    errEl.textContent = 'Tu es déjà dans cette entreprise';
-    errEl.style.display = 'block';
-    return;
-  }
+  // Lire le code AVANT toute action async (l'input peut disparaître en cours de route)
+  const newCode = input ? input.value.trim().toUpperCase() : '';
 
-  // Vérifier que le code existe dans le registre
+  if(errEl) errEl.style.display = 'none';
+
+  if(newCode.length < 3){ showErr('Code trop court (3 caractères minimum)'); return; }
+  if(newCode === companyGetCode()){ showErr('Tu es déjà dans cette entreprise'); return; }
+
+  // Vérifier que le code existe dans le registre Supabase
   const name = await _fetchCompanyName(newCode);
   if(!name && newCode !== DEV_COMPANY_CODE){
-    errEl.textContent = 'Code entreprise introuvable — vérifie avec ton administrateur';
-    errEl.style.display = 'block';
+    showErr('Code entreprise introuvable — vérifie avec ton administrateur');
     return;
   }
 
@@ -7575,10 +7573,10 @@ async function switchCompanyCode(){
     // 1. Couper le canal Realtime actuel
     stopSyncPolling();
 
-    // 2. Pousser les données locales actuelles vers Supabase avant de partir
-    if(navigator.onLine) try{ await syncPush(); } catch(e){}
+    // 2. Pousser les données locales vers Supabase avant de partir
+    if(navigator.onLine) try{ await syncPush(); }catch(e){}
 
-    // 3. Effacer le cache local de l'ancienne entreprise (localStorage préfixé)
+    // 3. Effacer le cache local de l'ancienne entreprise
     const oldPfx = companyPrefix();
     if(oldPfx){
       const toDelete = [];
@@ -7596,10 +7594,8 @@ async function switchCompanyCode(){
     // 5. Ouvrir le canal Realtime de la nouvelle entreprise
     if(navigator.onLine) startSyncPolling();
 
-    // 6. Tenter de charger les données depuis Supabase
-    if(navigator.onLine){
-      try{ await syncPull(); }catch(e){}
-    }
+    // 6. Charger les données depuis Supabase
+    if(navigator.onLine) try{ await syncPull(); }catch(e){}
 
     // 7. Si pas de données → init vierge
     const pfx = companyPrefix();
@@ -7607,18 +7603,21 @@ async function switchCompanyCode(){
     if(!hasData) companyInitEmpty();
 
     showToast('✅ Entreprise changée : ' + newCode);
-    if(input) input.value = '';
 
-    // 8. Recharger toute l'interface
+    // 8. Vider le champ seulement s'il existe encore dans le DOM
+    const inputFresh = document.getElementById('paramNewCompanyCode');
+    if(inputFresh) inputFresh.value = '';
+
+    // 9. Recharger l'interface
     await loadData();
     refreshCurrentView();
     renderParametres();
 
   } catch(e){
-    errEl.textContent = 'Erreur lors du changement : ' + (e.message || 'réessaie');
-    errEl.style.display = 'block';
+    showErr('Erreur lors du changement : ' + (e.message || 'réessaie'));
   } finally {
-    if(btn){ btn.disabled = false; btn.textContent = 'Rejoindre cette entreprise'; }
+    const btnFresh = document.querySelector('#parametresMode-entreprise .btn-primary');
+    if(btnFresh){ btnFresh.disabled = false; btnFresh.textContent = 'Rejoindre cette entreprise'; }
   }
 }
 
@@ -23674,7 +23673,7 @@ function navManagerToggle(view, visible){
    2. Ajouter un objet en tête du tableau CHANGELOG
    ══════════════════════════════════════════════════════ */
 
-const APP_VERSION = '1.5.4';
+const APP_VERSION = '1.5.5';
 
 const CHANGELOG = [
   {
