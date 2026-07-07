@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>RWOOD — Carnet de chantier</title>
 <link rel="manifest" href="manifest.json">
-<link rel="preconnect" href="https://espiotysnvxgjxrzkfta.supabase.co">
+<link rel="preconnect" href="https://yztykpaijuohvdrvugak.supabase.co">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" as="script">
 <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
@@ -3170,6 +3170,20 @@
   </div>
 </div>
 
+
+<!-- MODULE — CompanyCode : splash bloquant "Code entreprise" -->
+<div id="companySplash" style="display:none; position:fixed; inset:0; z-index:300; background:var(--bg); flex-direction:column; align-items:center; justify-content:center; padding:28px; text-align:center;">
+  <div style="width:74px; height:74px; border-radius:20px; background:var(--wood); display:flex; align-items:center; justify-content:center; margin-bottom:22px; box-shadow:0 8px 24px rgba(0,0,0,.4);">
+    <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="#0F1117" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-4 7 4v13M9 21v-6h6v6"/></svg>
+  </div>
+  <h1 style="font-size:22px; font-weight:800; margin:0 0 8px;">Entrez votre code entreprise</h1>
+  <p style="font-size:14px; color:var(--ink-soft); margin:0 0 22px; max-width:340px; line-height:1.5;">Ce code vous est communiqué par votre patron. Il isole les données de votre entreprise.</p>
+  <input type="text" id="companyCodeInput" placeholder="Ex : MONENTREPRISE" autocomplete="off" autocapitalize="characters"
+    style="width:100%; max-width:320px; padding:14px 16px; font-size:18px; font-weight:700; text-align:center; letter-spacing:1px; text-transform:uppercase; border:2px solid var(--line); border-radius:12px; background:var(--card); color:var(--ink); margin-bottom:14px; box-sizing:border-box;"
+    onkeydown="if(event.key==='Enter') companyCodeSubmit()">
+  <button class="btn btn-primary" style="width:100%; max-width:320px; padding:14px;" onclick="companyCodeSubmit()">Valider</button>
+  <div id="companyCodeError" style="color:#E07A63; font-size:13px; margin-top:12px; min-height:18px;"></div>
+</div>
 
 <div id="app">
 
@@ -6993,8 +7007,193 @@ async function prepareDataForExport(src){
    - Supabase     = source de vérité partagée entre appareils
    ======================================= */
 
-const SUPA_URL = 'https://espiotysnvxgjxrzkfta.supabase.co';
-const SUPA_KEY = 'sb_publishable_Q8V0-K4HERye-JKhcbjm1Q_fyEsBxMu';
+const SUPA_URL = 'https://yztykpaijuohvdrvugak.supabase.co';
+const SUPA_KEY = 'sb_publishable_KvwO_y5o19TOor2EHi0SdA_iVB7n8NJ';
+
+/* ═══════════════════════════════════════════════════════════════════
+   MODULE — CompanyCode  ·  début   (build multi-entreprises)
+   Cloisonne totalement les données par "code entreprise" :
+   - Toutes les clés localStorage rwood-* sont préfixées CODE__…
+   - Tous les user_id Supabase (table rwood_sync) sont préfixés CODE__…
+   → deux entreprises ne partagent jamais rien, même appareil/serveur.
+   Le patron invente le code et le donne à ses ouvriers. Sans code saisi,
+   un splash bloque l'app. Le code est visible/modifiable dans l'onglet Dev
+   (changer le code = renommer l'entreprise : migre les données existantes).
+   Retrait (pour revenir à une app mono-entreprise) : supprimer ce bloc,
+   le splash #companySplash + son CSS, et l'accroche companyGetCode() dans init.
+   ═══════════════════════════════════════════════════════════════════ */
+/* ── Purge données legacy (one-shot au premier lancement RWOOD Log v1.5.0) ─ */
+(function purgeOldData(){
+  const CLEAN_FLAG = 'rwoodlog_clean_v150';
+  try{
+    if(localStorage.getItem(CLEAN_FLAG)) return; // déjà nettoyé
+    // Efface toutes les clés liées aux anciennes données RWOOD ou RWOOD Log
+    const toDelete = [];
+    for(let i=0; i<localStorage.length; i++){
+      const k = localStorage.key(i);
+      if(!k) continue;
+      // Garde uniquement la clé pivot du code entreprise et le flag de nettoyage
+      if(k === 'rwood_company_code' || k === CLEAN_FLAG) continue;
+      toDelete.push(k);
+    }
+    toDelete.forEach(k => { try{ localStorage.removeItem(k); }catch(e){} });
+    localStorage.setItem(CLEAN_FLAG, '1');
+  }catch(e){}
+})();
+
+const COMPANY_CODE_KEY = 'rwood_company_code';
+let COMPANY_CODE = null;
+
+function companyGetCode(){
+  if(COMPANY_CODE) return COMPANY_CODE;
+  try{ COMPANY_CODE = localStorage.getItem(COMPANY_CODE_KEY) || null; }catch(e){ COMPANY_CODE = null; }
+  return COMPANY_CODE;
+}
+/* Normalise : majuscules, alphanumérique + tiret/underscore, max 24 car. */
+function companyNormalize(raw){
+  return String(raw||'').trim().toUpperCase().replace(/[^A-Z0-9_-]/g,'').slice(0,24);
+}
+function companyPrefix(){
+  const c = companyGetCode();
+  return c ? (c + '__') : '';
+}
+
+/* ── Wrapper localStorage : préfixe automatique des clés rwood-* ──
+   On enveloppe getItem/setItem/removeItem UNE fois. La clé pivot
+   (rwood_company_code) et les clés non-rwood ne sont pas préfixées. */
+(function installCompanyLocalStorageWrapper(){
+  if(window.__companyLSWrapped) return;
+  window.__companyLSWrapped = true;
+  const proto = window.localStorage;
+  const _get = proto.getItem.bind(proto);
+  const _set = proto.setItem.bind(proto);
+  const _del = proto.removeItem.bind(proto);
+  const mapKey = (key) => {
+    if(key === COMPANY_CODE_KEY) return key;   // clé pivot : jamais préfixée
+    const pfx = companyPrefix();
+    if(!pfx) return key;                        // pas de code encore : neutre
+    if(String(key).startsWith(pfx)) return key; // déjà préfixé
+    if(String(key).startsWith('rwood')) return pfx + key; // rwood-* / rwood_*
+    return key;
+  };
+  localStorage.getItem    = (k)   => _get(mapKey(k));
+  localStorage.setItem    = (k,v) => _set(mapKey(k), v);
+  localStorage.removeItem = (k)   => _del(mapKey(k));
+})();
+
+/* ── Préfixe les user_id Supabase (cloisonne la table rwood_sync) ── */
+function companyScopePath(path){
+  const pfx = companyPrefix();
+  if(!pfx) return path;
+  return path.replace(/user_id=eq\.([^&]+)/g, (m, val) => {
+    const decoded = decodeURIComponent(val);
+    if(decoded.startsWith(pfx)) return m;
+    return 'user_id=eq.' + encodeURIComponent(pfx + decoded);
+  });
+}
+function companyScopeBody(body){
+  const pfx = companyPrefix();
+  if(!pfx || !body || typeof body !== 'string') return body;
+  try{
+    const obj = JSON.parse(body);
+    if(obj && typeof obj.user_id === 'string' && !obj.user_id.startsWith(pfx)){
+      obj.user_id = pfx + obj.user_id;
+      return JSON.stringify(obj);
+    }
+  }catch(e){}
+  return body;
+}
+
+/* ── UI & cycle de vie ── */
+function companyShowSplash(){
+  const sp = document.getElementById('companySplash');
+  const app = document.getElementById('app');
+  if(app) app.style.display = 'none';
+  const auth = document.getElementById('authScreen');
+  if(auth) auth.style.display = 'none';
+  if(sp) sp.style.display = 'flex';
+  setTimeout(() => { const i = document.getElementById('companyCodeInput'); if(i) i.focus(); }, 100);
+}
+
+/* Code caché réservé au développeur — donne accès direct au mode Dev */
+const DEV_COMPANY_CODE = 'RP030698';
+
+function companyCodeSubmit(){
+  const input = document.getElementById('companyCodeInput');
+  const errEl = document.getElementById('companyCodeError');
+  const code = companyNormalize(input ? input.value : '');
+  if(code.length < 3){ if(errEl) errEl.textContent = 'Code trop court (3 caractères minimum).'; return; }
+
+  // ── Code Dev caché : accès direct mode développeur ────────────────
+  if(code === DEV_COMPANY_CODE){
+    try{ localStorage.setItem(COMPANY_CODE_KEY, code); }catch(e){}
+    COMPANY_CODE = code;
+    let hasData = false;
+    try{ hasData = !!localStorage.getItem('rwood-data'); }catch(e){}
+    if(!hasData) companyInitEmpty();
+    const sp = document.getElementById('companySplash');
+    if(sp) sp.style.display = 'none';
+    const app = document.getElementById('app');
+    if(app) app.style.display = '';
+    // Ouvre le panneau Dev directement après rechargement
+    sessionStorage.setItem('rwoodlog_open_dev_on_load', '1');
+    location.reload();
+    return;
+  }
+
+  try{ localStorage.setItem(COMPANY_CODE_KEY, code); }catch(e){}
+  COMPANY_CODE = code;
+  // Première fois pour CE code sur cet appareil ? → démarrage vierge.
+  let hasData = false;
+  try{ hasData = !!localStorage.getItem('rwood-data'); }catch(e){}
+  if(!hasData) companyInitEmpty();
+  location.reload();
+}
+
+/* Stores VIDES pour une nouvelle entreprise (aucune trace d'origine). */
+function companyInitEmpty(){
+  const empty = {
+    sites: [], attendance: {}, workers: [], contacts: [],
+    stock: [], itineraires: [], notes: [], depotMachines: [], settings: {}
+  };
+  try{ localStorage.setItem('rwood-data', JSON.stringify(empty)); }catch(e){}
+}
+
+/* Onglet Dev : renommer l'entreprise = migrer les données scoppées. */
+function companyRenameFromDev(){
+  const cur = companyGetCode();
+  const nv = companyNormalize(prompt('Nouveau code entreprise (les données actuelles seront conservées et migrées) :', cur || ''));
+  if(!nv || nv.length < 3){ if(nv!==null) showToast('Code trop court'); return; }
+  if(nv === cur){ showToast('Code inchangé'); return; }
+  const oldPfx = cur ? (cur + '__') : '';
+  const newPfx = nv + '__';
+  try{
+    const rawGet = Object.getPrototypeOf(localStorage).getItem.bind(localStorage);
+    const rawSet = Object.getPrototypeOf(localStorage).setItem.bind(localStorage);
+    const rawDel = Object.getPrototypeOf(localStorage).removeItem.bind(localStorage);
+    const toMigrate = [];
+    for(let i=0;i<localStorage.length;i++){
+      const k = localStorage.key(i);
+      if(oldPfx && k.startsWith(oldPfx)) toMigrate.push(k);
+    }
+    toMigrate.forEach(k => {
+      const bare = k.slice(oldPfx.length);
+      const v = rawGet(k);
+      if(v != null) rawSet(newPfx + bare, v);
+      rawDel(k);
+    });
+    rawSet(COMPANY_CODE_KEY, nv);
+  }catch(e){}
+  COMPANY_CODE = nv;
+  showToast('Entreprise renommée : ' + nv);
+  setTimeout(() => location.reload(), 600);
+}
+
+function companyRefreshDevLabel(){
+  const el = document.getElementById('devCompanyCodeLabel');
+  if(el) el.textContent = companyGetCode() || '(aucun)';
+}
+/* ═══ MODULE — CompanyCode  ·  fin ═══ */
 
 
 // Indicateur visuel de sync dans le header
@@ -7030,6 +7229,9 @@ function getSupaUserId(){
 }
 
 async function supaFetch(path, options={}){
+  // MODULE — CompanyCode : cloisonne la table rwood_sync par entreprise
+  path = companyScopePath(path);
+  if(options && options.body) options = { ...options, body: companyScopeBody(options.body) };
   const res = await fetch(SUPA_URL + path, {
     ...options,
     headers: {
@@ -19122,6 +19324,11 @@ function getDateOfISOWeek(week, year){
 /* ============ INIT ============ */
 (async function init(){
   initTheme();
+  // MODULE — CompanyCode : sans code entreprise, on bloque sur le splash.
+  if(!companyGetCode()){
+    companyShowSplash();
+    return; // init reprend après saisie via companyCodeSubmit() → reload
+  }
   setupAllDropZones();
   await loadData();
   if(typeof devAccessRefresh === 'function') devAccessRefresh(); // MODULE — DevAccess : droits dynamiques (async)
@@ -19137,6 +19344,16 @@ function getDateOfISOWeek(week, year){
 
   const isBlocked = checkAuthOnStartup();
   if(isBlocked) return; // n'affiche rien tant que l'utilisateur n'est pas authentifié
+
+  // ── Ouverture automatique panneau Dev si accès via code RP030698 ──
+  if(sessionStorage.getItem('rwoodlog_open_dev_on_load') === '1'){
+    sessionStorage.removeItem('rwoodlog_open_dev_on_load');
+    setTimeout(() => {
+      if(typeof openModal === 'function') openModal('devPanel');
+      if(typeof switchDevTab === 'function') switchDevTab('comptes');
+      if(typeof renderDevCompaniesList === 'function') renderDevCompaniesList();
+    }, 1000);
+  }
 
   if(needsRoleMigration()){
     openModal('roleMigration');
@@ -23190,7 +23407,7 @@ function navManagerToggle(view, visible){
    2. Ajouter un objet en tête du tableau CHANGELOG
    ══════════════════════════════════════════════════════ */
 
-const APP_VERSION = '2.43.1';
+const APP_VERSION = '1.5.1';
 
 const CHANGELOG = [
   {
@@ -28865,6 +29082,7 @@ function switchDevTab(tab){
 }
 
 async function refreshDevPanel(){
+  if(typeof companyRefreshDevLabel === 'function') companyRefreshDevLabel(); // MODULE — CompanyCode
   const btn  = document.getElementById('devPanelRefreshBtn');
   const list = document.getElementById('devPanelList');
   if(btn){ btn.disabled = true; btn.textContent = '⏳ Chargement…'; }
@@ -30017,18 +30235,27 @@ function unlockRoleOnThisDevice(){
 
 async function generateCompanyCode(){
   const nameInput = document.getElementById('devCompanyNameInput');
-  const name = (nameInput.value || '').trim();
+  const codeInput = document.getElementById('devCompanyCodeInput');
+  const name = (nameInput ? nameInput.value : '').trim();
   if(!name){ showToast('Donne un nom d\'entreprise'); return; }
 
   const companies = await _fetchCompaniesRegistry();
-  let code = _generateRandomCompanyCode();
-  // Garantir l'unicité du code
-  while(companies.some(c => c.code === code)) code = _generateRandomCompanyCode();
+
+  // Code libre saisi par le Dev, sinon auto-généré
+  let code = codeInput && codeInput.value.trim() ? codeInput.value.trim().toUpperCase().replace(/[^A-Z0-9_-]/g,'') : null;
+  if(!code){
+    code = _generateRandomCompanyCode();
+    while(companies.some(c => c.code === code)) code = _generateRandomCompanyCode();
+  } else {
+    if(code.length < 3){ showToast('Code trop court (3 caractères minimum)'); return; }
+    if(companies.some(c => c.code === code)){ showToast('Ce code existe déjà — choisis-en un autre'); return; }
+  }
 
   companies.push({ code, name, createdAt: new Date().toISOString() });
   await _saveCompaniesRegistry(companies);
-  nameInput.value = '';
-  showToast('Code généré : ' + code);
+  if(nameInput) nameInput.value = '';
+  if(codeInput) codeInput.value = '';
+  showToast('✅ Code créé : ' + code);
   renderDevCompaniesList();
 }
 
@@ -33382,10 +33609,13 @@ async function comptaEditEnsurePulled(){
 
     <div class="card" style="margin-bottom:14px;">
       <div style="font-weight:700; margin-bottom:6px;">🏢 Code Creator</div>
-      <div class="hint" style="margin-bottom:10px;">Génère un Code Entreprise unique à donner à un nouveau client.</div>
-      <div style="display:flex; gap:8px;">
-        <input type="text" id="devCompanyNameInput" placeholder="Nom de l'entreprise" style="flex:1; padding:10px 12px; border-radius:10px; border:1.5px solid var(--line); background:var(--bg-elev); color:var(--ink);">
-        <button class="btn btn-primary" onclick="generateCompanyCode()">Générer</button>
+      <div class="hint" style="margin-bottom:10px;">Crée un Code Entreprise à donner à un client. Laisse le code vide pour en générer un automatiquement.</div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <input type="text" id="devCompanyNameInput" placeholder="Nom de l'entreprise" style="padding:10px 12px; border-radius:10px; border:1.5px solid var(--line); background:var(--bg-elev); color:var(--ink);">
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="devCompanyCodeInput" placeholder="Code libre (ex: BCM2024) ou vide = auto" autocapitalize="characters" style="flex:1; padding:10px 12px; border-radius:10px; border:1.5px solid var(--line); background:var(--bg-elev); color:var(--ink); text-transform:uppercase;">
+          <button class="btn btn-primary" onclick="generateCompanyCode()">Créer</button>
+        </div>
       </div>
       <div id="devCompanyCodesList" style="margin-top:12px;"></div>
     </div>
@@ -33400,6 +33630,18 @@ async function comptaEditEnsurePulled(){
     </div>
 
     <!-- Onglets Comptes / Pointages / Machines -->
+    <!-- MODULE — CompanyCode : code entreprise (visible/modifiable en dev) -->
+    <div class="card" style="margin-bottom:12px; border:1px solid var(--wood);">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+        <div style="min-width:0;">
+          <div style="font-size:13px; font-weight:700;">🏢 Code entreprise</div>
+          <div style="font-size:16px; font-weight:800; color:var(--wood); margin-top:2px;" id="devCompanyCodeLabel">(aucun)</div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="companyRenameFromDev()">Modifier</button>
+      </div>
+      <div class="hint" style="margin-top:8px;">Ce code isole les données de l'entreprise. Le patron le communique à ses ouvriers. Le modifier renomme l'entreprise actuelle et migre ses données.</div>
+    </div>
+
     <div style="display:flex; gap:6px; margin-bottom:12px;">
       <button id="devTabComptes" class="btn btn-primary" style="flex:1;font-size:12px;" onclick="switchDevTab('comptes')">👥 Comptes</button>
       <button id="devTabPointages" class="btn btn-outline" style="flex:1;font-size:12px;" onclick="switchDevTab('pointages')">⏱ Pointages</button>
