@@ -7330,39 +7330,147 @@ async function syncPull(){
   }
 }
 
-// Écoute les changements en temps réel (Supabase Realtime via polling léger)
-// Supabase Realtime nécessite une lib JS — on fait du polling toutes les 8s
-// C'est suffisant pour une app de chantier
-let syncPollInterval = null;
-function startSyncPolling(){
-  if(syncPollInterval) return;
-  // Poll toutes les 15s — bon compromis réactivité/batterie/réseau
-  syncPollInterval = setInterval(async ()=>{
+// ══ SUPABASE REALTIME — WebSocket natif filtré par préfixe entreprise ════
+// Remplace le polling toutes les 15s par un vrai canal temps réel.
+// Aucun SDK externe requis — connexion WebSocket directe au broker Supabase.
+let _realtimeWs      = null;
+let _realtimeHbTimer = null;
+let _realtimeRef     = 1;
+let _realtimeReady   = false;
+let _realtimeFallbackActive = false;
+let _realtimeFallbackTimer  = null;
+let _realtimeFallbackLastTs = 0;
+
+function _startFallbackPolling(){
+  if(_realtimeFallbackTimer) return;
+  _realtimeFallbackTimer = setInterval(async () => {
+    if(!navigator.onLine || document.visibilityState !== 'visible') return;
     const userId = getSupaUserId();
-    if(!userId || !navigator.onLine) return;
-    // Ne pas poller si l'app est en arrière-plan (économie batterie)
-    if(document.visibilityState !== 'visible') return;
+    if(!userId) return;
     try{
       const res = await supaFetch(
-        '/rest/v1/rwood_sync?user_id=eq.' + encodeURIComponent(userId) +
-        '&select=updated_at', { headers:{'Prefer':''} }
+        '/rest/v1/rwood_sync?user_id=eq.' + encodeURIComponent(userId) + '&select=updated_at',
+        { headers:{ 'Prefer':'' } }
       );
       if(!res.ok) return;
       const rows = await res.json();
       if(!rows || !rows.length) return;
       const remoteTs = new Date(rows[0].updated_at).getTime();
-      const localTs  = parseInt(localStorage.getItem('rwood-last-sync-ts')||'0');
-      if(remoteTs > localTs + 3000){ // +3s de tolérance (évite les faux positifs)
+      if(remoteTs > _realtimeFallbackLastTs + 3000){
+        _realtimeFallbackLastTs = remoteTs;
         await syncPull();
-        localStorage.setItem('rwood-last-sync-ts', remoteTs.toString());
         refreshCurrentView();
       }
     } catch(e){}
-  }, 15000); // 15s entre chaque vérification
+  }, 20000); // 20s — fallback seulement, pas le chemin principal
+}
+
+function _realtimeJoinChannel(){
+  if(!_realtimeWs || _realtimeWs.readyState !== WebSocket.OPEN) return;
+  const pfx = companyPrefix();
+  if(!pfx) return;
+  const ref = String(++_realtimeRef);
+  const msg = {
+    topic: 'realtime:rwood_sync_' + (companyGetCode()||'').toLowerCase(),
+    event: 'phx_join',
+    payload: {
+      config: {
+        broadcast: { self: false },
+        postgres_changes: [{
+          event: '*',
+          schema: 'public',
+          table:  'rwood_sync',
+          filter: 'user_id=like.' + pfx + '*'
+        }]
+      }
+    },
+    ref: ref
+  };
+  _realtimeWs.send(JSON.stringify(msg));
+}
+
+function startSyncPolling(){
+  if(_realtimeWs && _realtimeWs.readyState === WebSocket.OPEN) return;
+
+  const wsUrl = SUPA_URL
+    .replace('https://', 'wss://')
+    .replace('http://', 'ws://')
+    + '/realtime/v1/websocket?apikey=' + SUPA_KEY + '&vsn=1.0.0';
+
+  function connect(){
+    try{ _realtimeWs = new WebSocket(wsUrl); } catch(e){ return; }
+
+    _realtimeWs.onopen = () => {
+      _realtimeReady = true;
+      // Heartbeat obligatoire toutes les 25s (sinon Supabase coupe la connexion)
+      _realtimeHbTimer = setInterval(() => {
+        if(_realtimeWs && _realtimeWs.readyState === WebSocket.OPEN){
+          _realtimeWs.send(JSON.stringify({
+            topic: 'phoenix', event: 'heartbeat', payload: {}, ref: String(++_realtimeRef)
+          }));
+        }
+      }, 25000);
+      _realtimeJoinChannel();
+    };
+
+    _realtimeWs.onmessage = async (evt) => {
+      let msg;
+      try{ msg = JSON.parse(evt.data); } catch(e){ return; }
+      if(msg.event === 'phx_reply' || msg.event === 'heartbeat') return;
+
+      if(msg.event === 'postgres_changes'){
+        const record = msg.payload && (msg.payload.record || msg.payload.old_record);
+        const userId = record && record.user_id;
+        const pfx = companyPrefix();
+        if(!userId || !pfx || !userId.startsWith(pfx)) return;
+        // Ignorer nos propres mises à jour (déjà dans localStorage)
+        const myPrefixedId = pfx + getSupaUserId();
+        if(userId === myPrefixedId) return;
+        // Donnée d'un collègue → pull + rafraîchissement
+        try{
+          await syncPull();
+          refreshCurrentView();
+          showToast('🔄 Données mises à jour');
+        } catch(e){}
+      }
+    };
+
+    _realtimeWs.onerror = () => {};
+
+    _realtimeWs.onclose = () => {
+      _realtimeReady = false;
+      clearInterval(_realtimeHbTimer);
+      _realtimeHbTimer = null;
+      _realtimeWs = null;
+      // Reconnexion automatique après 5s si online
+      if(navigator.onLine) setTimeout(connect, 5000);
+    };
+
+    // Fallback : si le WebSocket ne s'ouvre pas en 8s (réseau chantier restrictif)
+    // on bascule sur un polling léger de sécurité
+    setTimeout(() => {
+      if(!_realtimeReady && !_realtimeFallbackActive){
+        _realtimeFallbackActive = true;
+        _startFallbackPolling();
+      }
+    }, 8000);
+  }
+
+  connect();
+}
+
+function stopSyncPolling(){
+  clearInterval(_realtimeHbTimer);
+  _realtimeHbTimer = null;
+  if(_realtimeWs){
+    _realtimeWs.onclose = null; // bloque la reconnexion auto
+    _realtimeWs.close();
+    _realtimeWs = null;
+  }
+  _realtimeReady = false;
 }
 
 function refreshCurrentView(){
-  // Rerender la vue active sans navigation pour ne pas perdre le contexte
   const activeView = document.querySelector('.view.active');
   if(!activeView) return;
   const viewId = activeView.id.replace('view-','');
@@ -7379,9 +7487,11 @@ function refreshCurrentView(){
   if(renders[viewId]) renders[viewId]();
 }
 
-// Sync au retour en ligne
+// Sync au retour en ligne / hors ligne
 window.addEventListener('online',  ()=>{ syncPush(); startSyncPolling(); });
 window.addEventListener('offline', ()=>{ showSyncStatus('offline'); });
+
+
 
 
 const THEME_KEY = 'rwood-theme';
@@ -23407,7 +23517,7 @@ function navManagerToggle(view, visible){
    2. Ajouter un objet en tête du tableau CHANGELOG
    ══════════════════════════════════════════════════════ */
 
-const APP_VERSION = '1.5.1';
+const APP_VERSION = '1.5.2';
 
 const CHANGELOG = [
   {
