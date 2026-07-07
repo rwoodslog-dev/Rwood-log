@@ -7785,17 +7785,26 @@ async function loadData(){
       const parsed = JSON.parse(raw);
       data = Object.assign(data, parsed);
     } else {
-      // Sauvegarder les données compte avant seedData (au cas où elles existent déjà)
+      // Sauvegarder les données compte avant l'init (au cas où elles existent déjà)
       const savedAuth    = data.settings && data.settings.auth    ? JSON.parse(JSON.stringify(data.settings.auth))    : null;
       const savedProfile = data.settings && data.settings.myProfile ? JSON.parse(JSON.stringify(data.settings.myProfile)) : null;
-      seedData();
-      // Restaurer les données compte après seedData
+
+      // Nouvelle entreprise → données strictement vierges (jamais de données BCM)
+      // seedData() réservé uniquement au code Dev (RP030698) pour ses tests
+      const currentCode = companyGetCode();
+      if(currentCode === DEV_COMPANY_CODE){
+        seedData(); // le Dev garde son environnement de test complet
+      } else {
+        companyInitEmpty(); // toute autre entreprise repart de zéro
+      }
+
+      // Restaurer les données compte après l'init
       if(savedAuth    && Object.keys(savedAuth).length)    data.settings.auth      = savedAuth;
       if(savedProfile && Object.keys(savedProfile).length) data.settings.myProfile = savedProfile;
       await saveData();
     }
   } catch(e){
-    seedData();
+    companyInitEmpty(); // en cas d'erreur, init vierge par sécurité
   }
 
   // Migration unique : les articles de stock créés avant le passage du seuil d'alerte
@@ -21029,7 +21038,13 @@ function finishAuthCreation(){
   const newCompanyCode = data.settings && data.settings.companyCode;
 
   // Réinitialiser toutes les données utilisateur vers la base vierge
-  seedData();
+  // (jamais de données BCM pour les entreprises clientes)
+  const currentCode = companyGetCode();
+  if(currentCode === DEV_COMPANY_CODE){
+    seedData();
+  } else {
+    companyInitEmpty();
+  }
 
   // Remettre le nouveau profil par-dessus la base vierge
   if(!data.settings) data.settings = {};
@@ -23673,7 +23688,7 @@ function navManagerToggle(view, visible){
    2. Ajouter un objet en tête du tableau CHANGELOG
    ══════════════════════════════════════════════════════ */
 
-const APP_VERSION = '1.5.5';
+const APP_VERSION = '1.5.6';
 
 const CHANGELOG = [
   {

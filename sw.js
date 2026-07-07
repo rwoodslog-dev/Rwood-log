@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rwoodlog-cache-v14';
+const CACHE_NAME = 'rwoodlog-cache-v15';
 const ASSETS = [
   './manifest.json',
   './icons/icon-192.png',
