@@ -7068,6 +7068,90 @@ const SUPA_KEY = 'sb_publishable_KvwO_y5o19TOor2EHi0SdA_iVB7n8NJ';
   }catch(e){}
 })();
 
+/* Migration one-shot v1.6.1 : purge contacts/logs BCM résiduels dans les
+   entreprises clientes (ceux injectés par seedData avant le correctif).
+   On détecte les données BCM par la présence de contacts avec des IDs connus
+   du jeu de données de démo ou par des noms spécifiques à BCM. */
+(function purgeResidualBCMData(){
+  const FLAG = 'rwoodlog_contacts_clean_v161';
+  try{
+    if(localStorage.getItem(FLAG)) return;
+    const code = localStorage.getItem('rwood_company_code');
+    if(!code || code === 'RP030698'){
+      localStorage.setItem(FLAG, '1');
+      return; // Dev : on ne touche pas à ses données
+    }
+    // Lire rwood-data du préfixe actuel via la clé brute (le wrapper n'est pas encore installé)
+    const rawKey = code + '__rwood-data';
+    const rawProto = Object.getPrototypeOf(window.localStorage);
+    const rawGet = rawProto.getItem.bind(window.localStorage);
+    const rawSet = rawProto.setItem.bind(window.localStorage);
+    const raw = rawGet(rawKey);
+    if(!raw){ localStorage.setItem(FLAG, '1'); return; }
+    let d;
+    try{ d = JSON.parse(raw); } catch(e){ localStorage.setItem(FLAG, '1'); return; }
+
+    // IDs des contacts BCM hardcodés dans seedData — leur présence trahit l'injection
+    const BCM_CONTACT_IDS = new Set([
+      'id_s23yphyfmqfe20ux','id_2lebnek4mqfe20ux','id_5hombyjvmqfe20ux',
+      'id_1hbt59ynmqfe20ux','id_uqy1v01gmqfe20ux','id_6nwr5phjmqfe20ux',
+      'id_1fhgown6mqfe20ux','id_jp3g5g75mqfe20ux','id_klcuoahnmqfe20ux',
+      'id_k4fc7yzymqfe20ux','id_24anwq28mqfe20ux','id_khd7ua2pmqfe20ux',
+      'id_7wafmtkcmqfe20ux','id_zvkr020vmqfe20ux','id_ebz7p3gnmqfe20ux',
+      'id_xos8g0nbmqfe20ux','id_7bx50tc8mqfe20ux','id_ddgy660umqfe20ux',
+      'id_qv2z51wmmqfe20ux','id_uv3wg34tmqfe20ux','id_w5z9dplrmqfe4ly3'
+    ]);
+    // IDs des chantiers BCM hardcodés dans seedData
+    const BCM_SITE_IDS = new Set([
+      'id_43b4j0jnmqfe20ux','id_0pdnlrkwmqfe20ux','id_7rnbhcrpmqfe20ux',
+      'id_036xlyr2mqfe20ux','id_g25djmmgmqhu09kp'
+    ]);
+    // IDs des itinéraires BCM hardcodés
+    const BCM_ITIN_IDS = new Set([
+      'id_3a0gknximqfe20ux','id_ib1kz5ynmqfe20ux','id_8ckzyqinmqfe20ux',
+      'id_y01k2nnfmqfe20ux','id_w0qp6hylmqfe20ux','id_olwv46enmqfe20ux',
+      'id_f1g7ktrymqfe20ux','id_ku55oa0gmqfe20ux','id_nf0pd8bwmqfe20ux',
+      'id_c8070m9imqfe20ux'
+    ]);
+
+    let changed = false;
+
+    // Purger les contacts BCM
+    const contacts = d.contacts || [];
+    const hasBCM = contacts.some(c => BCM_CONTACT_IDS.has(c.id));
+    if(hasBCM){
+      d.contacts = contacts.filter(c => !BCM_CONTACT_IDS.has(c.id));
+      changed = true;
+    }
+
+    // Purger les chantiers BCM (Guanxi, Marchal, Falgoux, Blanckert, Dépôt BCM)
+    const sites = d.sites || [];
+    const hasBCMSites = sites.some(s => BCM_SITE_IDS.has(s.id));
+    if(hasBCMSites){
+      d.sites = sites.filter(s => !BCM_SITE_IDS.has(s.id));
+      changed = true;
+    }
+
+    // Purger les itinéraires BCM
+    const itins = d.itineraries || d.itineraires || [];
+    const hasBCMItins = itins.some(i => BCM_ITIN_IDS.has(i.id));
+    if(hasBCMItins){
+      const cleanItins = itins.filter(i => !BCM_ITIN_IDS.has(i.id));
+      if(d.itineraries)  d.itineraries  = cleanItins;
+      if(d.itineraires)  d.itineraires  = cleanItins;
+      changed = true;
+    }
+
+    if(changed){
+      try{ rawSet(rawKey, JSON.stringify(d)); }catch(e){}
+    }
+
+    localStorage.setItem(FLAG, '1');
+  }catch(e){
+    try{ localStorage.setItem('rwoodlog_contacts_clean_v161', '1'); }catch(e2){}
+  }
+})();
+
 const COMPANY_CODE_KEY = 'rwood_company_code';
 let COMPANY_CODE = null;
 
@@ -23781,7 +23865,7 @@ function navManagerToggle(view, visible){
    2. Ajouter un objet en tête du tableau CHANGELOG
    ══════════════════════════════════════════════════════ */
 
-const APP_VERSION = '1.6.1';
+const APP_VERSION = '1.6.2';
 
 const CHANGELOG = [
   {
