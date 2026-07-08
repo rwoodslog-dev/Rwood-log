@@ -7181,8 +7181,18 @@ function companyCodeSubmit(){
 function companyInitEmpty(){
   const empty = {
     sites: [], attendance: {}, workers: [], contacts: [],
-    stock: [], itineraires: [], notes: [], depotMachines: [], settings: {}
+    stock: [], itineraires: [], notes: [], depotMachines: [],
+    logs: [], trash: [], favorites: [], tasks: [], receivedFiches: [],
+    comptableSites: [], tiles: [], payslips: [], zincProfiles: [],
+    trucks: [], customRoles: [], collapsedRoles: [],
+    settings: {}
   };
+  // Réinitialiser aussi la variable data en mémoire (pas seulement localStorage)
+  // pour éviter qu'un reload partiel affiche des données résiduelles
+  if(typeof data !== 'undefined'){
+    Object.keys(data).forEach(k => { if(k !== 'settings') data[k] = empty[k] !== undefined ? empty[k] : []; });
+    if(!data.settings) data.settings = {};
+  }
   try{ localStorage.setItem('rwood-data', JSON.stringify(empty)); }catch(e){}
 }
 
@@ -7851,11 +7861,13 @@ function debouncedSyncPush(){
 }
 
 async function saveData(skipSync){
+  const serialized = JSON.stringify(prepareDataForLocalStorage(data));
   try{
-    localStorage.setItem('rwood-data', JSON.stringify(prepareDataForLocalStorage(data)));
+    localStorage.setItem('rwood-data', serialized);
     if(!skipSync) debouncedSyncPush();
   } catch(e){
     if(e && (e.name === 'QuotaExceededError' || e.code === 22)){
+      // Étape 1 : migrer les photos inline vers IndexedDB pour libérer de la place
       try{
         await migrateInlinePhotosToStorage();
         localStorage.setItem('rwood-data', JSON.stringify(prepareDataForLocalStorage(data)));
@@ -7863,11 +7875,49 @@ async function saveData(skipSync){
         showToast('Photos déplacées en mémoire interne pour libérer de l\'espace');
         return;
       } catch(e2){
-        console.error('Erreur sauvegarde après migration', e2);
+        // Étape 2 : écrire une version allégée sans logs/trash/photos inline
+        try{
+          const slim = JSON.stringify({
+            sites:        (data.sites        || []).map(s => { const c = {...s}; delete c.photos; return c; }),
+            workers:      (data.workers      || []).map(w => { const c = {...w}; delete c.photo;  return c; }),
+            stock:        data.stock         || [],
+            contacts:     data.contacts      || [],
+            itineraries:  data.itineraries   || [],
+            tasks:        data.tasks         || [],
+            attendance:   data.attendance    || {},
+            tiles:        (data.tiles        || []).map(t => { const c = {...t}; delete c.photo;  return c; }),
+            zincProfiles: data.zincProfiles  || [],
+            trucks:       data.trucks        || [],
+            payslips:     [],
+            logs:         [],
+            trash:        [],
+            favorites:    data.favorites     || [],
+            settings:     data.settings      || {}
+          });
+          localStorage.setItem('rwood-data', slim);
+          if(!skipSync) debouncedSyncPush();
+          showToast('⚠️ Espace limité — logs et corbeille vidés localement. Données principales conservées.');
+          return;
+        } catch(e3){
+          // Quota trop plein même allégé : push cloud uniquement, toast une seule fois
+          if(!skipSync && navigator.onLine && getSupaUserId()) debouncedSyncPush();
+          if(!saveData._quotaWarned){
+            saveData._quotaWarned = true;
+            showToast('Espace local saturé — données sauvegardées sur le cloud uniquement.');
+            setTimeout(() => { saveData._quotaWarned = false; }, 30000);
+          }
+          return;
+        }
       }
     }
-    console.error('Erreur sauvegarde', e);
-    showToast('Erreur de sauvegarde — vérifie l\'espace ou choisis un dossier dans Paramètres > Stockage');
+    // Autre erreur : log silencieux, toast une seule fois toutes les 30s
+    if(!saveData._errorWarned){
+      saveData._errorWarned = true;
+      console.error('Erreur sauvegarde', e);
+      if(!skipSync && navigator.onLine && getSupaUserId()) debouncedSyncPush();
+      showToast('Erreur de sauvegarde — données poussées sur le cloud.');
+      setTimeout(() => { saveData._errorWarned = false; }, 30000);
+    }
   }
 }
 
@@ -17518,20 +17568,63 @@ async function importFromPhoneContacts(){
   }
   try{
     const props = ['name', 'tel', 'email'];
-    const opts = {multiple: false};
-    const selected = await navigator.contacts.select(props, opts);
+    // Sélection multiple activée
+    const selected = await navigator.contacts.select(props, { multiple: true });
     if(!selected || selected.length === 0) return;
 
-    const contact = selected[0];
-    const name = (contact.name && contact.name[0]) || '';
-    const phone = (contact.tel && contact.tel[0]) || '';
-    const email = (contact.email && contact.email[0]) || '';
+    if(selected.length === 1){
+      // Un seul contact → pré-remplir le formulaire comme avant
+      const contact = selected[0];
+      const name  = (contact.name  && contact.name[0])  || '';
+      const phone = (contact.tel   && contact.tel[0])   || '';
+      const email = (contact.email && contact.email[0]) || '';
+      openContactModal();
+      document.getElementById('contactName').value  = name;
+      document.getElementById('contactPhone').value = phone;
+      document.getElementById('contactEmail').value = email;
+      return;
+    }
 
-    // Pré-remplir le formulaire de nouveau contact
-    openContactModal();
-    document.getElementById('contactName').value = name;
-    document.getElementById('contactPhone').value = phone;
-    document.getElementById('contactEmail').value = email;
+    // Plusieurs contacts → import direct en masse
+    let added   = 0;
+    let skipped = 0;
+    if(!data.contacts) data.contacts = [];
+
+    for(const contact of selected){
+      const name  = (contact.name  && contact.name[0])  || '';
+      const phone = (contact.tel   && contact.tel[0])   || '';
+      const email = (contact.email && contact.email[0]) || '';
+
+      if(!name.trim()){ skipped++; continue; }
+
+      // Éviter les doublons (même nom + même téléphone)
+      const exists = data.contacts.some(c =>
+        c.name.trim().toLowerCase() === name.trim().toLowerCase() &&
+        (!phone || c.phone === phone)
+      );
+      if(exists){ skipped++; continue; }
+
+      data.contacts.push({
+        id:       uid(),
+        name:     name.trim(),
+        phone:    phone,
+        email:    email,
+        role:     '',
+        color:    '#6FA37E',
+        favorite: false
+      });
+      added++;
+    }
+
+    if(added > 0){
+      await saveData();
+      renderContacts();
+      showToast('✅ ' + added + ' contact' + (added > 1 ? 's' : '') + ' importé' + (added > 1 ? 's' : '') +
+        (skipped > 0 ? ' — ' + skipped + ' ignoré(s)' : ''));
+    } else {
+      showToast('Aucun nouveau contact — ' + skipped + ' doublon(s) ignoré(s)');
+    }
+
   } catch(err){
     if(err && err.name !== 'AbortError'){
       showToast('Impossible d\'accéder aux contacts');
@@ -23688,7 +23781,7 @@ function navManagerToggle(view, visible){
    2. Ajouter un objet en tête du tableau CHANGELOG
    ══════════════════════════════════════════════════════ */
 
-const APP_VERSION = '1.5.9';
+const APP_VERSION = '1.6.1';
 
 const CHANGELOG = [
   {
