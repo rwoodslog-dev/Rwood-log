@@ -4985,16 +4985,6 @@
           </div>
         </section>
 
-         MODULE — SuiviHeures (début)  ·  onglet 100% isolé, patron/dev
-         Accroches base (a retirer pour desinstaller proprement) :
-           1. bouton nav  data-view="suivi" #suiviNavBtn   (barre nav)
-           2. goTo()      cas 'suivi' + titre + garde role  (routeur)
-           3. cette section #view-suivi                     (DOM)
-           4. bloc JS balise MODULE — SuiviHeures (JS)       (script)
-           5. appel suiviApplyNavVisibility() au chargement / changement role
-         LECTURE SEULE : agrège data.attendance sans jamais le modifier.
-         Aucun couplage avec la saisie des heures (aucune écriture).
-         ═══════════════════════════════════════════════════════════════ -->
     <section class="view" id="view-suivi">
       <div class="suivi-wrap">
         <div class="suivi-toolbar">
@@ -24034,7 +24024,7 @@ function navManagerToggle(view, visible){
    2. Ajouter un objet en tête du tableau CHANGELOG
    ══════════════════════════════════════════════════════ */
 
-const APP_VERSION = '1.7.0';
+const APP_VERSION = '1.7.1';
 
 const CHANGELOG = [
   {
