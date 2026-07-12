@@ -76,6 +76,7 @@
     background: var(--bg);
     overflow-x: hidden;
     position: relative;
+    will-change: transform;
   }
 
   /* HEADER — épuré via CSS uniquement */
@@ -2977,6 +2978,10 @@
   /* Dashboard en simple mode : pas de bouton retour (on est déjà au dashboard) */
   body.simple-mode .view#view-simpleDash ~ #simpleModeBackBtn{ /* géré en JS */ }
 
+  /* Optimisations perf : évite le layout des vues/modales hors écran */
+  .modal-overlay:not(.open){ content-visibility:auto; contain-intrinsic-size:0 500px; }
+  .view:not(.active){ content-visibility:auto; contain-intrinsic-size:0 800px; }
+
   /* MODULE — SitesFilter : barre recherche + filtres */
   .sites-filter-bar{ margin-bottom:14px; display:flex; flex-direction:column; gap:8px; }
   .sites-filter-search{
@@ -3009,6 +3014,40 @@
   .galerie-cap{
     font-size:10px; color:var(--ink-soft); padding:4px 6px; line-height:1.3;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+
+  /* Galerie — vue dossiers (lazy loading niveau 1) */
+  .galerie-folders{
+    display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; padding:4px 0;
+  }
+  .galerie-folder{
+    background:var(--card); border-radius:14px; overflow:hidden; cursor:pointer;
+    border:1.5px solid var(--line); transition:border-color .15s;
+  }
+  .galerie-folder:active{ border-color:var(--wood); }
+  .galerie-folder-thumb{
+    position:relative; aspect-ratio:1/1; background:var(--bg-elev);
+  }
+  .galerie-folder-thumb img{
+    width:100%; height:100%; object-fit:cover; display:block;
+  }
+  .galerie-folder-count{
+    position:absolute; bottom:6px; right:6px;
+    background:rgba(0,0,0,.7); color:#fff; font-size:11px; font-weight:700;
+    border-radius:10px; padding:2px 7px;
+  }
+  .galerie-folder-name{
+    font-size:13px; font-weight:700; padding:8px 10px 2px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .galerie-folder-zone{
+    font-size:10px; color:var(--wood); padding:0 10px 8px; font-weight:600;
+  }
+  .galerie-folder-head{
+    margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid var(--line);
+  }
+  .galerie-folder-title{
+    font-size:15px; font-weight:800; display:flex; align-items:center; gap:8px;
   }
   #galerieLightbox{
     position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.92);
@@ -3526,7 +3565,7 @@
       <div class="chip-row" id="heuresModeTabs" style="margin-bottom:14px;">
         <div class="chip selected" data-mode="pointage" onclick="setHeuresMode('pointage')">Pointage</div>
         <div class="chip" data-mode="fiches" onclick="setHeuresMode('fiches')">Fiches d'heures</div>
-        <div class="chip" data-mode="paie" onclick="setHeuresMode('paie')">Paie</div>
+        <div class="chip" data-mode="paie" onclick="setHeuresMode('paie')" style="display:none;">Paie</div>
         <div class="chip" data-mode="compta" id="tabComptaPaie" style="display:none;" onclick="setHeuresMode('compta')">📊 Compta Paie</div>
       </div>
 
@@ -4958,8 +4997,10 @@
     <section class="view" id="view-notes">
       <div class="notes-wrap">
         <div class="notes-add-row">
-          <input type="text" id="notesAddInput" placeholder="Ajouter une tâche…" onkeydown="if(event.key==='Enter') notesAddManual()">
-          <button class="btn btn-primary" style="padding:0 14px;" onclick="notesAddManual()">+</button>
+          <textarea id="notesAddInput" placeholder="Ajouter une tâche…" rows="1"
+            style="resize:none; overflow:hidden; flex:1; padding:8px 10px; border-radius:10px; border:1.5px solid var(--line); background:var(--bg-elev); color:var(--ink); font-size:14px; max-height:220px; font-family:inherit; line-height:1.4;"
+            oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,220)+'px'"></textarea>
+          <button class="btn btn-primary" style="padding:0 14px; align-self:flex-end;" onclick="notesAddManual()">+</button>
         </div>
 
         <div class="notes-list-head">
@@ -6476,6 +6517,8 @@ async function storeDocFromDataUrl(dataUrl, storageKey, category = 'documents'){
 
 async function resolveMediaUrl(ref){
   if(!ref) return null;
+  // URLs publiques bucket (http/https) → retourner directement, pas de chargement IndexedDB
+  if(ref.startsWith('http://') || ref.startsWith('https://')) return ref;
   if(isDataUrlRef(ref)) return ref;
   if(_mediaUrlCache.has(ref)) return _mediaUrlCache.get(ref);
   const blob = await loadBlobBytes(ref);
@@ -6487,6 +6530,8 @@ async function resolveMediaUrl(ref){
 
 function mediaUrl(ref){
   if(!ref) return '';
+  // URLs publiques bucket → retourner directement
+  if(ref.startsWith('http://') || ref.startsWith('https://')) return ref;
   if(isDataUrlRef(ref)) return ref;
   if(_mediaUrlCache.has(ref)) return _mediaUrlCache.get(ref);
   preloadMediaRef(ref);
@@ -7797,6 +7842,50 @@ async function switchCompanyCode(){
 
 /* ══ FIN MODULE — EntrepriseParams ════════════════════════════════════════ */
 
+/* ══ MODULE — Perf (pré-rendu + cache de rendu) ═══════════════════ */
+const _perfCache = {};
+
+function _perfHash(obj){
+  try{ return JSON.stringify(obj).length + '_' + (JSON.stringify(obj).slice(0,80)||''); }
+  catch(e){ return String(Date.now()); }
+}
+
+function _perfShouldSkipRender(viewName, dataSlice){
+  const h = _perfHash(dataSlice);
+  if(_perfCache[viewName] === h) return true;
+  _perfCache[viewName] = h;
+  return false;
+}
+
+function _perfInvalidate(viewName){ delete _perfCache[viewName]; }
+function _perfInvalidateAll(){ Object.keys(_perfCache).forEach(k => delete _perfCache[k]); }
+
+function _perfPrerenderViews(){
+  const views = ['heures','stock','contacts','notes','agenda','couverture'];
+  let i = 0;
+  const next = () => {
+    if(i >= views.length) return;
+    const v = views[i++];
+    const renders = {
+      heures: ()=>{ if(typeof renderHeures==='function') renderHeures(); },
+      stock:  ()=>{ if(typeof renderStock==='function')  renderStock(); },
+      contacts:()=>{ if(typeof renderContacts==='function') renderContacts(); },
+      notes:  ()=>{ if(typeof notesRender==='function')  notesRender(); },
+      agenda: ()=>{ if(typeof renderAgenda==='function') renderAgenda(); },
+      couverture:()=>{ if(typeof renderCouverture==='function') renderCouverture(); }
+    };
+    if(typeof requestIdleCallback !== 'undefined'){
+      requestIdleCallback(() => { try{ renders[v](); }catch(e){} next(); }, { timeout:2000 });
+    } else {
+      setTimeout(() => { try{ renders[v](); }catch(e){} next(); }, 300);
+    }
+  };
+  next();
+}
+
+document.addEventListener('DOMContentLoaded', () => setTimeout(_perfPrerenderViews, 4000));
+/* ══ FIN MODULE — Perf ════════════════════════════════════════════ */
+
 function refreshCurrentView(){
   const activeView = document.querySelector('.view.active');
   if(!activeView) return;
@@ -8026,6 +8115,7 @@ function debouncedSyncPush(){
 
 async function saveData(skipSync){
   const serialized = JSON.stringify(prepareDataForLocalStorage(data));
+  _perfInvalidateAll();
   try{
     localStorage.setItem('rwood-data', serialized);
     if(!skipSync) debouncedSyncPush();
@@ -8280,7 +8370,7 @@ function goTo(viewName, siteId){
   }
 
   if(viewName === 'magasin') magasinRender(); // MODULE — Magasin
-  if(viewName === 'notes') notesRender(); // MODULE — Notes
+  if(viewName === 'notes') notesSyncFollowedThenRender(); // MODULE — Notes
   if(viewName === 'suivi'){ // MODULE — SuiviHeures : réservé patron/dev
     if(!suiviCanAccess()){ goTo('chantiers'); return; }
     suiviRefresh(false);
@@ -8609,41 +8699,101 @@ function _galerieCaption(m){
   return `Par ${escapeHtml(who)}${when ? ' · ' + when : ''}`;
 }
 
+let _galerieOpenSiteId = null; // null = vue dossiers, sinon = siteId ouvert
+
 function galerieRender(){
   const root = document.getElementById('galerieContent');
   if(!root) return;
-  const groups = _galerieCollect();
-
-  if(!groups.length){
-    root.innerHTML = '<div class="empty" style="padding:40px 20px;"><div class="icon" style="font-size:38px;">📸</div><h3>Aucune photo partagée</h3><p>Ajoute des photos depuis l\'onglet Média d\'un chantier ; elles apparaîtront ici pour toute l\'équipe.</p></div>';
-    _galerieStartPolling();
-    return;
+  if(_galerieOpenSiteId){
+    _galerieRenderFolder(root, _galerieOpenSiteId);
+  } else {
+    _galerieRenderFolders(root);
   }
-
-  root.innerHTML = groups.map(g => `
-    <div class="galerie-group">
-      <div class="galerie-group-head">🏗️ ${escapeHtml(g.site.name)}${g.site.trajetZone?`<span class="galerie-zone">Zone ${escapeHtml(String(g.site.trajetZone))}</span>`:''}</div>
-      <div class="galerie-grid">
-        ${g.photos.map(m => {
-          const key = g.site.id + '|' + m.id;
-          const checked = _galerieSelected.has(key);
-          const onclick = _galerieSelectMode
-            ? `galerieTogglePhoto('${key}')`
-            : `galerieOpenLightbox('${escapeHtml(m.url)}','${escapeHtml((_galerieCaption(m)+' — '+(g.site.name||'')).replace(/'/g,'&#39;'))}')`;
-          return `
-          <div class="galerie-cell${_galerieSelectMode?' selectable':''}${checked?' selected':''}" onclick="${onclick}">
-            ${_galerieSelectMode ? `<div class="galerie-check">${checked?'✓':''}</div>` : ''}
-            <img src="${escapeHtml(m.url)}" loading="lazy" alt="photo">
-            <div class="galerie-cap">${_galerieCaption(m)}</div>
-          </div>`;
-        }).join('')}
-      </div>
-    </div>
-  `).join('') + (_galerieSelectMode ? _galerieActionBarHtml() : '');
   _galerieStartPolling();
 }
 
-/* Active/désactive le mode sélection. */
+function _galerieRenderFolders(root){
+  // Réinitialiser le mode sélection à la vue dossiers
+  if(_galerieSelectMode){ _galerieSelectMode = false; _galerieSelected.clear(); }
+  const btn = document.getElementById('galerieSelectBtn');
+  if(btn) btn.style.display = 'none';
+
+  const groups = _galerieCollect().filter(g => g.photos.length > 0);
+  if(!groups.length){
+    root.innerHTML = '<div class="empty" style="padding:40px 20px;"><div class="icon" style="font-size:38px;">📸</div><h3>Aucune photo partagée</h3><p>Ajoute des photos depuis l\'onglet Média d\'un chantier.</p></div>';
+    return;
+  }
+  root.innerHTML = `<div class="galerie-folders">` +
+    groups.map(g => {
+      const cover = g.photos[0];
+      const count = g.photos.length;
+      return `<div class="galerie-folder" onclick="galerieOpenFolder('${escapeHtml(g.site.id)}')">
+        <div class="galerie-folder-thumb">
+          <img src="${escapeHtml(cover.url)}" loading="lazy" alt="">
+          <div class="galerie-folder-count">${count}</div>
+        </div>
+        <div class="galerie-folder-name">${escapeHtml(g.site.name||'Chantier')}</div>
+        ${g.site.trajetZone ? `<div class="galerie-folder-zone">Zone ${escapeHtml(String(g.site.trajetZone))}</div>` : ''}
+      </div>`;
+    }).join('') + `</div>`;
+}
+
+function _galerieRenderFolder(root, siteId){
+  const btn = document.getElementById('galerieSelectBtn');
+  if(btn) btn.style.display = '';
+
+  const group = _galerieCollect().find(g => g.site.id === siteId);
+  if(!group || !group.photos.length){
+    root.innerHTML = `<div style="padding:12px 0;">
+      <button class="btn btn-outline btn-sm" onclick="galerieCloseFolder()" style="margin-bottom:16px;">← Voir tous les dossiers</button>
+      <div class="empty"><h3>Aucune photo pour ce chantier</h3></div>
+    </div>`;
+    return;
+  }
+  const backBtn = `<button class="btn btn-outline btn-sm" onclick="galerieCloseFolder()" style="margin-bottom:12px;">← Voir tous les dossiers</button>`;
+  const header = `<div class="galerie-folder-head"><div class="galerie-folder-title">🏗️ ${escapeHtml(group.site.name)}${group.site.trajetZone?`<span class="galerie-zone" style="margin-left:8px;">Zone ${escapeHtml(String(group.site.trajetZone))}</span>`:''}</div></div>`;
+  const grid = `<div class="galerie-grid">` +
+    group.photos.map(m => {
+      const key = siteId + '|' + m.id;
+      const checked = _galerieSelected.has(key);
+      const onclick = _galerieSelectMode
+        ? `galerieTogglePhoto('${key}')`
+        : `galerieOpenLightbox('${escapeHtml(m.url)}','${escapeHtml((_galerieCaption(m)+' — '+(group.site.name||'')).replace(/'/g,'&#39;'))}')`;
+      return `<div class="galerie-cell${_galerieSelectMode?' selectable':''}${checked?' selected':''}" onclick="${onclick}">
+        ${_galerieSelectMode ? `<div class="galerie-check">${checked?'✓':''}</div>` : ''}
+        <img src="${escapeHtml(m.url)}" loading="lazy" alt="photo">
+        <div class="galerie-cap">${_galerieCaption(m)}</div>
+      </div>`;
+    }).join('') + `</div>`;
+  root.innerHTML = backBtn + header + grid + (_galerieSelectMode ? _galerieActionBarHtml() : '');
+}
+
+function galerieOpenFolder(siteId){
+  _galerieOpenSiteId = siteId;
+  _galerieSelectMode = false;
+  _galerieSelected.clear();
+  galerieRender();
+}
+
+function galerieCloseFolder(){
+  _galerieOpenSiteId = null;
+  _galerieSelectMode = false;
+  _galerieSelected.clear();
+  galerieRender();
+}
+
+function galerieRenderIfChanged(){
+  if(_galerieOpenSiteId){
+    // Mode dossier ouvert : surveiller uniquement les photos de ce dossier
+    const site = (data.sites||[]).find(s => s.id === _galerieOpenSiteId);
+    const count = site ? (site.sharedMedia||[]).filter(m=>m&&(m.type==='photo'||(m.mimeType||'').startsWith('image/'))).length : 0;
+    if(count !== _galerieLastCount){ _galerieLastCount = count; galerieRender(); }
+  } else {
+    const total = (data.sites||[]).reduce((n,s)=> n + ((s.sharedMedia||[]).filter(m=>m&&(m.type==='photo'||(m.mimeType||'').startsWith('image/'))).length), 0);
+    if(total !== _galerieLastCount){ _galerieLastCount = total; galerieRender(); }
+  }
+}
+/* ═══ MODULE — Galerie  ·  fin ═══ */
 function galerieToggleSelectMode(){
   _galerieSelectMode = !_galerieSelectMode;
   if(!_galerieSelectMode) _galerieSelected.clear();
@@ -11039,7 +11189,44 @@ async function uploadFileToSupabase(file, siteId){
   return `${SUPA_URL}/storage/v1/object/public/${SUPA_BUCKET}/${path}`;
 }
 
-/* Ajoute un fichier au chantier et le pousse en synchro */
+/* Upload photo tuile vers bucket public (tiles/<tileId>.<ext>) → URL publique */
+async function uploadTilePhotoToBucket(dataUrl, tileId){
+  if(!dataUrl || !tileId) return null;
+  try{
+    const [header, b64] = dataUrl.split(',');
+    const mimeType = (header.match(/:(.*?);/) || [])[1] || 'image/jpeg';
+    const ext = mimeType.split('/')[1] || 'jpg';
+    const bytes = atob(b64);
+    const arr = new Uint8Array(bytes.length);
+    for(let i=0; i<bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+    const blob = new Blob([arr], { type: mimeType });
+    const path = `tiles/${tileId}.${ext}`;
+    const res = await fetch(`${SUPA_URL}/storage/v1/object/${SUPA_BUCKET}/${path}`, {
+      method: 'POST',
+      headers:{
+        'apikey': SUPA_KEY,
+        'Authorization': 'Bearer ' + SUPA_KEY,
+        'Content-Type': mimeType,
+        'x-upsert': 'true'
+      },
+      body: blob
+    });
+    if(!res.ok) return null;
+    return `${SUPA_URL}/storage/v1/object/public/${SUPA_BUCKET}/${path}`;
+  } catch(e){ return null; }
+}
+
+/* Sauvegarde photo tuile : bucket si en ligne, IndexedDB en repli */
+async function _saveTilePhoto(dataUrl, tileId){
+  if(!dataUrl) return undefined;
+  if(navigator.onLine){
+    const url = await uploadTilePhotoToBucket(dataUrl, tileId);
+    if(url) return url;
+  }
+  return await storeImageFromDataUrl(dataUrl, 'photo:' + tileId);
+}
+
+
 async function addSharedMediaToSite(siteId, file, opts){
   const silent = opts && opts.silent;
   const site = data.sites.find(s => s.id === siteId);
@@ -15062,7 +15249,7 @@ async function createTile(){
       tile.pureauMin = pureauMin;
       tile.pureauMax = pureauMax;
       tile.photo = newTilePhotoData && isDataUrlRef(newTilePhotoData)
-        ? await storeImageFromDataUrl(newTilePhotoData, 'photo:' + tile.id)
+        ? await _saveTilePhoto(newTilePhotoData, tile.id)
         : (newTilePhotoData || undefined);
       tile.doc = await resolveTileDocForSave(tile.id);
     }
@@ -15070,7 +15257,7 @@ async function createTile(){
   } else {
     const newTileId = uid();
     const tilePhotoRef = newTilePhotoData
-      ? await storeImageFromDataUrl(newTilePhotoData, 'photo:' + newTileId)
+      ? await _saveTilePhoto(newTilePhotoData, newTileId)
       : undefined;
     data.tiles.push({
       id: newTileId,
@@ -24024,7 +24211,7 @@ function navManagerToggle(view, visible){
    2. Ajouter un objet en tête du tableau CHANGELOG
    ══════════════════════════════════════════════════════ */
 
-const APP_VERSION = '1.7.1';
+const APP_VERSION = '1.8.0';
 
 const CHANGELOG = [
   {
@@ -28151,7 +28338,7 @@ function _renderPinnedTasksInPopup(){
        </div>` : '';
 
   if(!pn.tasks.length){
-    container.innerHTML = syncBtn + '<div style="color:var(--ink-soft);font-size:12px;padding:4px 0 6px;">Aucune tâche — ajoute-en une ci-dessous.</div>';
+    container.innerHTML = syncBtn + '<div style="color:var(--ink-soft);font-size:12px;padding:4px 0 6px;">Aucune tâche pour le moment.</div>';
     return;
   }
   const sorted = [...pn.tasks].sort((a,b)=> (a.done?1:0)-(b.done?1:0));
@@ -28415,11 +28602,12 @@ function _myTodoSyncKey(){
   return auth && auth.authId ? TODO_SYNC_KEY_PREFIX + auth.authId : null;
 }
 
-/* Chef : push sa liste à chaque modif */
+/* Chef (et ouvriers suivant un chef) : push la liste à chaque modif */
 async function pushMyTodoList(){
   const role = data.settings && data.settings.myProfile && data.settings.myProfile.role;
-  if(role !== 'chef') return;
-  const key = _myTodoSyncKey();
+  const followedId = _getFollowedChefId();
+  // Chef → push sur sa propre clé ; ouvrier suivant un chef → push sur la clé du chef suivi
+  const key = (role === 'chef') ? _myTodoSyncKey() : (followedId ? TODO_SYNC_KEY_PREFIX + followedId : null);
   if(!key) return;
   try{
     const pn = _getPinnedNote();
@@ -29720,6 +29908,8 @@ async function refreshDevPanel(){
 
 /* ── Onglet Comptes : tous les utilisateurs inscrits (registre USERS_REGISTRY_KEY) ── */
 async function _renderDevTabComptes(list){
+  // Réconciliation : compléter le registre depuis les pointages
+  await _reconcileUsersRegistryFromPointages();
   const users = await _fetchUsersRegistry();
   const devList = (typeof devAccessFetchList === 'function') ? await devAccessFetchList() : []; // MODULE — DevAccess
   if(!users || !users.length){
@@ -30136,7 +30326,8 @@ async function _removeDeletedSiteId(siteId){
    ═══════════════════════════════════════════════════════════════════ */
 const USERS_REGISTRY_KEY = 'company_users_registry';
 
-async function _fetchUsersRegistry(){
+/* Lecture brute sans dédoublonnage (réservée au nettoyage/diagnostic) */
+async function _fetchUsersRegistryRaw(){
   try{
     const res = await supaFetch('/rest/v1/rwood_sync?user_id=eq.' + encodeURIComponent(USERS_REGISTRY_KEY) + '&select=data', { headers:{'Prefer':''} });
     if(!res.ok) return [];
@@ -30147,17 +30338,104 @@ async function _fetchUsersRegistry(){
   } catch(e){ return []; }
 }
 
-async function _saveUsersRegistry(users){
+/* Dédoublonnage : authId stripped du préfixe "recovered." + fusion par nom normalisé */
+function _dedupeUsersRegistry(users){
+  if(!users || !users.length) return [];
+  const normalize = s => (s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+  const strippedId = id => (id||'').replace(/^recovered\./, '');
+  // Regrouper par authId stripped
+  const byId = {};
+  users.forEach(u => {
+    const sid = strippedId(u.authId || '');
+    if(!byId[sid]) byId[sid] = [];
+    byId[sid].push(u);
+  });
+  let merged = Object.values(byId).map(group => {
+    const official = group.find(u => !u.authId?.startsWith('recovered.')) || group[0];
+    group.forEach(u => { Object.keys(u).forEach(k => { if(!official[k] && u[k]) official[k] = u[k]; }); });
+    official.authId = strippedId(official.authId || '');
+    return official;
+  });
+  // Fusion par nom normalisé (même personne sous des graphies différentes)
+  const byName = {};
+  merged.forEach(u => {
+    const nn = normalize((u.name||'').split(' ').sort().join(''));
+    if(!nn) return;
+    if(!byName[nn]) byName[nn] = u;
+    else { Object.keys(u).forEach(k => { if(!byName[nn][k] && u[k]) byName[nn][k] = u[k]; }); }
+  });
+  return Object.values(byName).filter(u => u.authId && u.name);
+}
+
+async function _fetchUsersRegistry(){
+  const raw = await _fetchUsersRegistryRaw();
+  return _dedupeUsersRegistry(raw);
+}
+
+/* Fix race condition : re-lit le serveur avant d'écrire, fusionne par authId */
+async function _saveUsersRegistry(users, removedAuthIds){
+  const removed = new Set(removedAuthIds || []);
+  const serverUsers = await _fetchUsersRegistryRaw();
+  // Fusionner : le plus récent (users) gagne, on complète avec server pour les entrées manquantes
+  const authIdSet = new Set((users||[]).map(u => u.authId));
+  const merged = [...(users||[])];
+  serverUsers.forEach(u => {
+    if(!authIdSet.has(u.authId) && !removed.has(u.authId)) merged.push(u);
+  });
+  const deduped = _dedupeUsersRegistry(merged);
   await supaFetch('/rest/v1/rwood_sync', {
     method: 'POST',
     headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
     body: JSON.stringify({
       user_id: USERS_REGISTRY_KEY,
       updated_at: new Date().toISOString(),
-      data: JSON.stringify({ users })
+      data: JSON.stringify({ users: deduped })
     })
   });
 }
+
+/* Réconciliation : tire tous les pointages, extrait les profils manquants */
+async function _reconcileUsersRegistryFromPointages(){
+  try{
+    const companyCode = companyGetCode();
+    if(!companyCode) return;
+    const pfx = companyCode + '__';
+    const rows = await (await fetch(
+      SUPA_URL + '/rest/v1/rwood_sync?user_id=like.' + encodeURIComponent(pfx + 'company_pointages_v1_') + '*&select=data',
+      { headers:{ 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Prefer': '' } }
+    )).json();
+    if(!rows || !rows.length) return;
+    const existing = await _fetchUsersRegistry();
+    const existingIds = new Set(existing.map(u => u.authId));
+    const existingNames = new Set(existing.map(u => (u.name||'').toLowerCase()));
+    const toAdd = [];
+    rows.forEach(row => {
+      const d = typeof row.data === 'string' ? (()=>{try{return JSON.parse(row.data);}catch(e){return {};}})() : (row.data||{});
+      // Propriétaire de l'appareil
+      if(d.ownerAuthId && !existingIds.has(d.ownerAuthId)){
+        const name = d.ownerName || d.ownerAuthId;
+        if(!existingNames.has(name.toLowerCase())){
+          toAdd.push({ authId: d.ownerAuthId, name, role: d.ownerRole || 'ouvrier' });
+          existingIds.add(d.ownerAuthId);
+          existingNames.add(name.toLowerCase());
+        }
+      }
+      // Ouvriers des équipes
+      (d.workers || []).forEach(w => {
+        const aid = w.authId || w.id;
+        const wname = (w.firstName ? w.firstName + ' ' + (w.lastName||'') : w.name || '').trim();
+        if(aid && !existingIds.has(aid) && wname && !existingNames.has(wname.toLowerCase())){
+          toAdd.push({ authId: aid, name: wname, role: w.role || 'ouvrier' });
+          existingIds.add(aid);
+          existingNames.add(wname.toLowerCase());
+        }
+      });
+    });
+    if(toAdd.length) await _saveUsersRegistry([...existing, ...toAdd]);
+  } catch(e){}
+}
+
+
 
 /* ═══════════════════════════════════════════════════════════════════
    MODULE — AFFICHAGE UTILISATEUR UNIFIÉ  (début)
@@ -32823,8 +33101,10 @@ document.addEventListener('DOMContentLoaded', () => setTimeout(_magasinStartPoll
   + '#view-notes .notes-item.done .notes-item-text{text-decoration:line-through;opacity:.5;}'
   + '#view-notes .notes-check{width:24px;height:24px;flex-shrink:0;border-radius:7px;border:2px solid var(--wood,#C8862B);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#1a1206;font-weight:900;font-size:15px;margin-top:1px;}'
   + '#view-notes .notes-check.on{background:var(--wood,#C8862B);}'
-  + '#view-notes .notes-item-text{flex:1;font-size:15px;line-height:1.4;color:var(--ink,#f0e6d2);word-break:break-word;}'
+  + '#view-notes .notes-item-text{font-size:15px;line-height:1.4;color:var(--ink,#f0e6d2);word-break:break-word;}'
   + '#view-notes .notes-del{background:none;border:none;color:#7a6a52;cursor:pointer;padding:2px 4px;flex-shrink:0;}'
+  + '#view-notes .notes-more{background:none;border:none;color:var(--wood,#C8862B);font-size:12px;cursor:pointer;padding:3px 0;display:block;}'
+  + '#view-notes .notes-meta{font-size:11px;color:var(--ink-soft);margin-top:3px;}'
   + '@media (min-width:860px){'
   +   '#view-notes .notes-wrap{max-width:720px;margin:0 auto;}'
   + '}';
@@ -32860,6 +33140,8 @@ function notesSyncSettingsControls(){
 }
 
 /* ── Rendu de la liste (store partagé avec la bulle) ─────────────── */
+const _notesExpanded = {};
+
 function notesRender(){
   const pn = _getPinnedNote();
   const tasks = pn.tasks || [];
@@ -32879,15 +33161,51 @@ function notesRender(){
   if(!tasks.length){ list.innerHTML=''; if(empty) empty.style.display='block'; return; }
   if(empty) empty.style.display='none';
 
-  list.innerHTML = tasks.map(t =>
-    '<div class="notes-item'+(t.done?' done':'')+'">'
-    + '<button class="notes-check'+(t.done?' on':'')+'" onclick="notesToggle(\''+t.id+'\')">'+(t.done?'✓':'')+'</button>'
-    + '<div class="notes-item-text">'+escapeHtml(t.text||'')+'</div>'
-    + '<button class="notes-del" onclick="notesDelete(\''+t.id+'\')" title="Supprimer">'
-    +   '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>'
-    + '</button>'
-    + '</div>'
-  ).join('');
+  list.innerHTML = tasks.map(t => {
+    const text = t.text || '';
+    const isLong = text.includes('\n') || text.length > 90;
+    const expanded = _notesExpanded[t.id];
+    const textStyle = isLong && !expanded
+      ? 'white-space:pre-wrap;overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;cursor:pointer;'
+      : 'white-space:pre-wrap;cursor:pointer;';
+    const toggleBtn = isLong
+      ? '<button class="notes-more" onclick="notesToggleExpand(\'' + t.id + '\')">' + (expanded ? '🔼 Voir moins' : '🔽 Voir plus') + '</button>'
+      : '';
+    const meta = (t.authorName || t.editedByName)
+      ? '<div class="notes-meta">' + (t.authorName ? '✍️ ' + escapeHtml(t.authorName) : '') + (t.editedByName ? ' · modifié par ' + escapeHtml(t.editedByName) : '') + '</div>'
+      : '';
+    return '<div class="notes-item' + (t.done ? ' done' : '') + '">'
+      + '<button class="notes-check' + (t.done ? ' on' : '') + '" onclick="notesToggle(\'' + t.id + '\')">' + (t.done ? '✓' : '') + '</button>'
+      + '<div style="flex:1;min-width:0;">'
+      + '<div class="notes-item-text" style="' + textStyle + '" onclick="notesEditPrompt(\'' + t.id + '\')">'
+      + escapeHtml(text) + '</div>'
+      + toggleBtn + meta
+      + '</div>'
+      + '<button class="notes-del" onclick="notesDelete(\'' + t.id + '\')" title="Supprimer">'
+      + '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>'
+      + '</button>'
+      + '</div>';
+  }).join('');
+}
+
+function notesToggleExpand(id){
+  _notesExpanded[id] = !_notesExpanded[id];
+  notesRender();
+}
+
+function notesEditPrompt(id){
+  const pn = _getPinnedNote();
+  const t = (pn.tasks||[]).find(x=>x.id===id);
+  if(!t) return;
+  const newText = prompt('Modifier la tâche :', t.text||'');
+  if(newText === null) return;
+  t.text = newText;
+  const profile = data.settings && data.settings.myProfile;
+  if(profile){
+    t.editedByName = ((profile.firstName||'') + ' ' + (profile.lastName||'')).trim();
+    t.editedAt = new Date().toISOString();
+  }
+  _notesCommit();
 }
 
 /* ── Actions liste (répercutées sur bulle + synchro) ─────────────── */
@@ -32914,8 +33232,11 @@ function notesAddManual(){
   const text = (inp ? inp.value : '').trim();
   if(!text) return;
   const pn = _getPinnedNote();
-  pn.tasks.push({id:uid(), text, done:false});
-  if(inp) inp.value='';
+  const profile = data.settings && data.settings.myProfile;
+  const authorName = profile ? ((profile.firstName||'') + ' ' + (profile.lastName||'')).trim() : '';
+  const authorAuthId = data.settings && data.settings.auth && data.settings.auth.authId;
+  pn.tasks.push({ id:uid(), text, done:false, authorName, authorAuthId, createdAt: new Date().toISOString() });
+  if(inp){ inp.value=''; inp.style.height='auto'; }
   _notesCommit();
 }
 function notesClearDone(){
@@ -32923,6 +33244,23 @@ function notesClearDone(){
   pn.tasks = (pn.tasks||[]).filter(t=>!t.done);
   _notesCommit();
   showToast('Tâches faites effacées');
+}
+
+/* Ouvrier : tire la liste du chef suivi avant d'afficher l'onglet */
+async function notesSyncFollowedThenRender(){
+  const role = data.settings && data.settings.myProfile && data.settings.myProfile.role;
+  const followedId = _getFollowedChefId();
+  if(role !== 'chef' && followedId){
+    try{
+      const todo = await pullChefTodoList(followedId);
+      if(todo && todo.tasks){
+        const pn = _getPinnedNote();
+        pn.tasks = todo.tasks;
+        await saveData(true);
+      }
+    } catch(e){}
+  }
+  notesRender();
 }
 
 /* ── Parsing local : segmentation sur "plus" / "et" ──────────────── */
