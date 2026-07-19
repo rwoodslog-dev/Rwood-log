@@ -7860,16 +7860,20 @@ async function switchCompanyCode(){
     try{ localStorage.setItem(COMPANY_CODE_KEY, newCode); }catch(e){}
     COMPANY_CODE = newCode;
 
-    // 5. Ouvrir le canal Realtime de la nouvelle entreprise
+    // 5. Vider data en mémoire IMMÉDIATEMENT (évite que les anciens chantiers
+    //    restent affichés si le pull ne retourne rien)
+    companyInitEmpty();
+
+    // 6. Ouvrir le canal Realtime de la nouvelle entreprise
     if(navigator.onLine) startSyncPolling();
 
-    // 6. Charger les données depuis Supabase
+    // 7. Charger les données depuis Supabase pour la nouvelle entreprise
     if(navigator.onLine) try{ await syncPull(); }catch(e){}
 
-    // 7. Si pas de données → init vierge
+    // 8. Si toujours pas de données (nouvelle entreprise vierge) → déjà vide via companyInitEmpty
     const pfx = companyPrefix();
     const hasData = !!(pfx && localStorage.getItem(pfx + 'rwood-data'));
-    if(!hasData) companyInitEmpty();
+    if(!hasData) companyInitEmpty(); // re-forcer si syncPull a échoué
 
     showToast('✅ Entreprise changée : ' + newCode);
 
@@ -24273,7 +24277,7 @@ function navManagerToggle(view, visible){
    2. Ajouter un objet en tête du tableau CHANGELOG
    ══════════════════════════════════════════════════════ */
 
-const APP_VERSION = '1.8.9';
+const APP_VERSION = '1.9.0';
 
 const CHANGELOG = [
   {
