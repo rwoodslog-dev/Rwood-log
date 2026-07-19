@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>RWOOD — Carnet de chantier</title>
 <link rel="manifest" href="manifest.json">
-<link rel="preconnect" href="https://yztykpaijuohvdrvugak.supabase.co">
+<link rel="preconnect" href="https://hmtixoknimjvbauibqhv.supabase.co">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" as="script">
 <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
@@ -7159,8 +7159,8 @@ async function prepareDataForExport(src){
    - Supabase     = source de vérité partagée entre appareils
    ======================================= */
 
-const SUPA_URL = 'https://yztykpaijuohvdrvugak.supabase.co';
-const SUPA_KEY = 'sb_publishable_KvwO_y5o19TOor2EHi0SdA_iVB7n8NJ';
+const SUPA_URL = 'https://hmtixoknimjvbauibqhv.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhtdGl4b2tuaW1qdmJhdWlicWh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0NjMzMDEsImV4cCI6MjEwMDAzOTMwMX0.-DN9Q5tS3VxIV9hbqntSLc3f2TTTcFKHreOHERQOH18';
 
 /* ═══════════════════════════════════════════════════════════════════
    MODULE — CompanyCode  ·  début   (build multi-entreprises)
@@ -24261,7 +24261,7 @@ function navManagerToggle(view, visible){
    2. Ajouter un objet en tête du tableau CHANGELOG
    ══════════════════════════════════════════════════════ */
 
-const APP_VERSION = '1.8.3';
+const APP_VERSION = '1.8.5';
 
 const CHANGELOG = [
   {
@@ -30646,40 +30646,61 @@ async function _fetchCompaniesRegistry(){
   try{
     const res = await fetch(
       SUPA_URL + '/rest/v1/rwood_sync?user_id=eq.' + encodeURIComponent(COMPANIES_REGISTRY_KEY) + '&select=data',
-      { headers:{ 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Prefer': '' } }
+      { headers:{ 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY } }
     );
-    if(!res.ok) return [];
+    if(!res.ok){
+      const err = await res.text().catch(()=>'');
+      console.error('_fetchCompaniesRegistry error', res.status, err);
+      return [];
+    }
     const rows = await res.json();
     if(!rows || !rows.length) return [];
-    const d = typeof rows[0].data === 'string' ? JSON.parse(rows[0].data) : rows[0].data;
+    const raw = rows[0].data;
+    const d = typeof raw === 'string' ? JSON.parse(raw) : raw;
     return (d && d.companies) || [];
-  } catch(e){ return []; }
+  } catch(e){
+    console.error('_fetchCompaniesRegistry exception', e);
+    return [];
+  }
 }
 
 async function _saveCompaniesRegistry(companies){
-  // Étape 1 : tenter upsert standard
-  const res = await fetch(SUPA_URL + '/rest/v1/rwood_sync', {
-    method: 'POST',
-    headers: {
-      'apikey': SUPA_KEY,
-      'Authorization': 'Bearer ' + SUPA_KEY,
-      'Content-Type': 'application/json',
-      'Prefer': 'resolution=merge-duplicates,return=minimal'
-    },
-    body: JSON.stringify({
-      user_id: COMPANIES_REGISTRY_KEY,
-      updated_at: new Date().toISOString(),
-      data: JSON.stringify({ companies })
-    })
-  });
-  if(res.ok) return;
-  // Étape 2 : si 409/403, essayer DELETE puis INSERT
+  const payload = {
+    user_id: COMPANIES_REGISTRY_KEY,
+    updated_at: new Date().toISOString(),
+    data: JSON.stringify({ companies })
+  };
+
+  // Étape 1 : upsert standard
+  let res;
+  try{
+    res = await fetch(SUPA_URL + '/rest/v1/rwood_sync', {
+      method: 'POST',
+      headers: {
+        'apikey': SUPA_KEY,
+        'Authorization': 'Bearer ' + SUPA_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates,return=minimal'
+      },
+      body: JSON.stringify(payload)
+    });
+  } catch(netErr){
+    console.error('_saveCompaniesRegistry network error', netErr);
+    return false;
+  }
+
+  if(res.ok) return true;
+
+  const errBody = await res.text().catch(()=>'');
+  console.error('_saveCompaniesRegistry upsert failed', res.status, errBody);
+
+  // Étape 2 : DELETE + INSERT de secours
   try{
     await fetch(SUPA_URL + '/rest/v1/rwood_sync?user_id=eq.' + encodeURIComponent(COMPANIES_REGISTRY_KEY), {
       method: 'DELETE',
       headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
     });
-    await fetch(SUPA_URL + '/rest/v1/rwood_sync', {
+    const res2 = await fetch(SUPA_URL + '/rest/v1/rwood_sync', {
       method: 'POST',
       headers: {
         'apikey': SUPA_KEY,
@@ -30687,13 +30708,16 @@ async function _saveCompaniesRegistry(companies){
         'Content-Type': 'application/json',
         'Prefer': 'return=minimal'
       },
-      body: JSON.stringify({
-        user_id: COMPANIES_REGISTRY_KEY,
-        updated_at: new Date().toISOString(),
-        data: JSON.stringify({ companies })
-      })
+      body: JSON.stringify(payload)
     });
-  } catch(e2){ console.error('_saveCompaniesRegistry fallback failed', e2); }
+    if(res2.ok) return true;
+    const err2 = await res2.text().catch(()=>'');
+    console.error('_saveCompaniesRegistry fallback failed', res2.status, err2);
+    return false;
+  } catch(e2){
+    console.error('_saveCompaniesRegistry fallback exception', e2);
+    return false;
+  }
 }
 
 function _generateRandomCompanyCode(){
@@ -31240,23 +31264,31 @@ async function generateCompanyCode(){
     }
 
     const updated = [...companies, { code, name, createdAt: new Date().toISOString() }];
-    await _saveCompaniesRegistry(updated);
+    const saved = await _saveCompaniesRegistry(updated);
+
+    if(!saved){
+      // Afficher l'erreur directement sous la liste
+      const list = document.getElementById('devCompanyCodesList');
+      if(list) list.innerHTML = '<div style="color:var(--danger,#E07A63);font-size:13px;padding:8px 0;">❌ Impossible d\'écrire sur Supabase.<br>Lance le SQL de permission dans ton dashboard Supabase :<br><code style="font-size:11px;word-break:break-all;">grant select,insert,update,delete on rwood_sync to anon,authenticated;</code></div>';
+      showToast('❌ Sauvegarde refusée par Supabase — voir le détail en bas');
+      return;
+    }
 
     // Vérification : relire Supabase pour confirmer que le code est bien enregistré
-    await new Promise(r => setTimeout(r, 400));
+    await new Promise(r => setTimeout(r, 600));
     const verify = await _fetchCompaniesRegistry();
     if(!verify.some(c => c.code === code)){
-      showToast('❌ Erreur : le code n\'a pas été sauvegardé sur Supabase. Vérifie la connexion.');
-      return;
+      showToast('⚠️ Code créé mais non visible — actualise dans 5s');
+    } else {
+      showToast('✅ Entreprise créée : ' + code + ' — ' + name);
     }
 
     if(nameInput) nameInput.value = '';
     if(codeInput) codeInput.value = '';
-    showToast('✅ Entreprise créée : ' + code + ' — ' + name);
     renderDevCompaniesList();
 
   } catch(e){
-    showToast('❌ Erreur lors de la création : ' + (e.message || 'inconnue'));
+    showToast('❌ Erreur : ' + (e.message || 'inconnue'));
     console.error('generateCompanyCode error', e);
   } finally {
     if(btn){ btn.disabled = false; btn.textContent = 'Créer'; }
