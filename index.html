@@ -7354,36 +7354,75 @@ function companyShowSplash(){
 /* Code caché réservé au développeur — donne accès direct au mode Dev */
 const DEV_COMPANY_CODE = 'RP030698';
 
-function companyCodeSubmit(){
+async function companyCodeSubmit(){
   const input = document.getElementById('companyCodeInput');
   const errEl = document.getElementById('companyCodeError');
-  const code = companyNormalize(input ? input.value : '');
-  if(code.length < 3){ if(errEl) errEl.textContent = 'Code trop court (3 caractères minimum).'; return; }
+  const btn   = document.querySelector('.btn-primary[onclick="companyCodeSubmit()"]');
+  const code  = companyNormalize(input ? input.value : '');
+
+  if(errEl) errEl.textContent = '';
+  if(code.length < 3){
+    if(errEl) errEl.textContent = 'Code trop court (3 caractères minimum).';
+    return;
+  }
 
   // ── Code Dev caché : accès direct mode développeur ────────────────
   if(code === DEV_COMPANY_CODE){
     try{ localStorage.setItem(COMPANY_CODE_KEY, code); }catch(e){}
     COMPANY_CODE = code;
-    let hasData = false;
-    try{ hasData = !!localStorage.getItem('rwood-data'); }catch(e){}
+    const pfx = companyPrefix();
+    const hasData = !!(pfx && localStorage.getItem(pfx + 'rwood-data'));
     if(!hasData) companyInitEmpty();
     const sp = document.getElementById('companySplash');
     if(sp) sp.style.display = 'none';
     const app = document.getElementById('app');
     if(app) app.style.display = '';
-    // Ouvre le panneau Dev directement après rechargement
     sessionStorage.setItem('rwoodlog_open_dev_on_load', '1');
     location.reload();
     return;
   }
 
-  try{ localStorage.setItem(COMPANY_CODE_KEY, code); }catch(e){}
-  COMPANY_CODE = code;
-  // Première fois pour CE code sur cet appareil ? → démarrage vierge.
-  let hasData = false;
-  try{ hasData = !!localStorage.getItem('rwood-data'); }catch(e){}
-  if(!hasData) companyInitEmpty();
-  location.reload();
+  // ── Code entreprise normal : vérifier dans le registre Supabase ───
+  if(btn){ btn.disabled = true; btn.textContent = 'Vérification…'; }
+  if(errEl) errEl.textContent = '';
+
+  try{
+    let codeValide = false;
+    if(navigator.onLine){
+      const companies = await _fetchCompaniesRegistry();
+      codeValide = companies.some(c => c.code === code);
+      if(!codeValide){
+        if(errEl) errEl.textContent = 'Code entreprise invalide. Contacte ton administrateur.';
+        if(btn){ btn.disabled = false; btn.textContent = 'Valider'; }
+        return;
+      }
+    } else {
+      // Hors ligne : accepter si déjà connu localement (retour sur un code existant)
+      codeValide = true;
+    }
+
+    try{ localStorage.setItem(COMPANY_CODE_KEY, code); }catch(e){}
+    COMPANY_CODE = code;
+
+    // Vérifier si des données existent déjà pour CE code (avec son préfixe)
+    const pfx = companyPrefix();
+    const hasData = !!(pfx && localStorage.getItem(pfx + 'rwood-data'));
+
+    if(!hasData){
+      // Première connexion à ce code → données strictement vierges
+      companyInitEmpty();
+    }
+
+    const sp = document.getElementById('companySplash');
+    if(sp) sp.style.display = 'none';
+    const app = document.getElementById('app');
+    if(app) app.style.display = '';
+    location.reload();
+
+  } catch(e){
+    if(errEl) errEl.textContent = 'Erreur de connexion (' + (e.message||'réessaie') + ')';
+    if(btn){ btn.disabled = false; btn.textContent = 'Valider'; }
+  }
 }
 
 /* Stores VIDES pour une nouvelle entreprise (aucune trace d'origine). */
@@ -24211,7 +24250,7 @@ function navManagerToggle(view, visible){
    2. Ajouter un objet en tête du tableau CHANGELOG
    ══════════════════════════════════════════════════════ */
 
-const APP_VERSION = '1.8.1';
+const APP_VERSION = '1.8.2';
 
 const CHANGELOG = [
   {
@@ -30607,7 +30646,8 @@ async function _fetchCompaniesRegistry(){
 }
 
 async function _saveCompaniesRegistry(companies){
-  await fetch(SUPA_URL + '/rest/v1/rwood_sync', {
+  // Étape 1 : tenter upsert standard
+  const res = await fetch(SUPA_URL + '/rest/v1/rwood_sync', {
     method: 'POST',
     headers: {
       'apikey': SUPA_KEY,
@@ -30621,6 +30661,28 @@ async function _saveCompaniesRegistry(companies){
       data: JSON.stringify({ companies })
     })
   });
+  if(res.ok) return;
+  // Étape 2 : si 409/403, essayer DELETE puis INSERT
+  try{
+    await fetch(SUPA_URL + '/rest/v1/rwood_sync?user_id=eq.' + encodeURIComponent(COMPANIES_REGISTRY_KEY), {
+      method: 'DELETE',
+      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+    });
+    await fetch(SUPA_URL + '/rest/v1/rwood_sync', {
+      method: 'POST',
+      headers: {
+        'apikey': SUPA_KEY,
+        'Authorization': 'Bearer ' + SUPA_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        user_id: COMPANIES_REGISTRY_KEY,
+        updated_at: new Date().toISOString(),
+        data: JSON.stringify({ companies })
+      })
+    });
+  } catch(e2){ console.error('_saveCompaniesRegistry fallback failed', e2); }
 }
 
 function _generateRandomCompanyCode(){
@@ -31144,26 +31206,50 @@ async function generateCompanyCode(){
   const nameInput = document.getElementById('devCompanyNameInput');
   const codeInput = document.getElementById('devCompanyCodeInput');
   const name = (nameInput ? nameInput.value : '').trim();
-  if(!name){ showToast('Donne un nom d\'entreprise'); return; }
+  const btn  = document.querySelector('[onclick="generateCompanyCode()"]');
 
-  const companies = await _fetchCompaniesRegistry();
+  if(!name){ showToast('⚠️ Donne un nom d\'entreprise'); return; }
+  if(!navigator.onLine){ showToast('⚠️ Pas de connexion internet'); return; }
 
-  // Code libre saisi par le Dev, sinon auto-généré
-  let code = codeInput && codeInput.value.trim() ? codeInput.value.trim().toUpperCase().replace(/[^A-Z0-9_-]/g,'') : null;
-  if(!code){
-    code = _generateRandomCompanyCode();
-    while(companies.some(c => c.code === code)) code = _generateRandomCompanyCode();
-  } else {
-    if(code.length < 3){ showToast('Code trop court (3 caractères minimum)'); return; }
-    if(companies.some(c => c.code === code)){ showToast('Ce code existe déjà — choisis-en un autre'); return; }
+  if(btn){ btn.disabled = true; btn.textContent = 'Création…'; }
+
+  try{
+    const companies = await _fetchCompaniesRegistry();
+
+    // Code libre ou auto-généré
+    let code = codeInput && codeInput.value.trim()
+      ? codeInput.value.trim().toUpperCase().replace(/[^A-Z0-9_-]/g,'')
+      : null;
+    if(!code){
+      code = _generateRandomCompanyCode();
+      while(companies.some(c => c.code === code)) code = _generateRandomCompanyCode();
+    } else {
+      if(code.length < 3){ showToast('⚠️ Code trop court (3 caractères minimum)'); return; }
+      if(companies.some(c => c.code === code)){ showToast('⚠️ Ce code existe déjà'); return; }
+    }
+
+    const updated = [...companies, { code, name, createdAt: new Date().toISOString() }];
+    await _saveCompaniesRegistry(updated);
+
+    // Vérification : relire Supabase pour confirmer que le code est bien enregistré
+    await new Promise(r => setTimeout(r, 400));
+    const verify = await _fetchCompaniesRegistry();
+    if(!verify.some(c => c.code === code)){
+      showToast('❌ Erreur : le code n\'a pas été sauvegardé sur Supabase. Vérifie la connexion.');
+      return;
+    }
+
+    if(nameInput) nameInput.value = '';
+    if(codeInput) codeInput.value = '';
+    showToast('✅ Entreprise créée : ' + code + ' — ' + name);
+    renderDevCompaniesList();
+
+  } catch(e){
+    showToast('❌ Erreur lors de la création : ' + (e.message || 'inconnue'));
+    console.error('generateCompanyCode error', e);
+  } finally {
+    if(btn){ btn.disabled = false; btn.textContent = 'Créer'; }
   }
-
-  companies.push({ code, name, createdAt: new Date().toISOString() });
-  await _saveCompaniesRegistry(companies);
-  if(nameInput) nameInput.value = '';
-  if(codeInput) codeInput.value = '';
-  showToast('✅ Code créé : ' + code);
-  renderDevCompaniesList();
 }
 
 async function renderDevCompaniesList(){
