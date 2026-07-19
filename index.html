@@ -2975,6 +2975,7 @@
   /* Quand Mode Simple actif : la nav bottom est masquée */
   body.simple-mode nav.bottom{ display:none !important; }
   body.simple-mode .fab{ display:none !important; }
+  body.simple-mode .fab.fab-force-show{ display:flex !important; }
   body.simple-mode #simpleModeBackBtn{ display:flex; }
   /* Dashboard en simple mode : pas de bouton retour (on est déjà au dashboard) */
   body.simple-mode .view#view-simpleDash ~ #simpleModeBackBtn{ /* géré en JS */ }
@@ -8283,7 +8284,8 @@ function updateFab(view, siteId){
 
   // 2) Liste des chantiers → créer un nouveau chantier
   if(view === 'chantiers'){
-    fab.style.display = 'block';
+    fab.style.display = 'flex';
+    fab.classList.add('fab-force-show');
     fab.textContent = '+';
     fab.title = 'Nouveau chantier';
     fab.dataset.label = 'Nouveau chantier';
@@ -8294,12 +8296,14 @@ function updateFab(view, siteId){
   // 3) Stock : l'action est gérée par son propre render (renderStock
   //    réassigne fab.onclick). On assure la visibilité par défaut.
   if(view === 'stock'){
-    fab.style.display = 'block';
+    fab.style.display = 'flex';
+    fab.classList.add('fab-force-show');
     return;
   }
 
   // 4) Toute autre vue → FAB masqué, aucune action
   fab.style.display = 'none';
+  fab.classList.remove('fab-force-show');
   fab.onclick = null;
 }
 
@@ -24262,7 +24266,7 @@ function navManagerToggle(view, visible){
    2. Ajouter un objet en tête du tableau CHANGELOG
    ══════════════════════════════════════════════════════ */
 
-const APP_VERSION = '1.8.6';
+const APP_VERSION = '1.8.8';
 
 const CHANGELOG = [
   {
@@ -29959,28 +29963,67 @@ async function refreshDevPanel(){
 
 /* ── Onglet Comptes : tous les utilisateurs inscrits (registre USERS_REGISTRY_KEY) ── */
 async function _renderDevTabComptes(list){
-  // Réconciliation : compléter le registre depuis les pointages
-  await _reconcileUsersRegistryFromPointages();
-  const users = await _fetchUsersRegistry();
-  const devList = (typeof devAccessFetchList === 'function') ? await devAccessFetchList() : []; // MODULE — DevAccess
-  if(!users || !users.length){
+  // Récupérer la liste des entreprises créées
+  const companies = await _fetchCompaniesRegistry();
+
+  // Lire le registre de CHAQUE entreprise (fetch direct sans préfixe Dev)
+  let allUsers = [];
+  for(const company of companies){
+    try{
+      const pfx = company.code + '__';
+      const res = await fetch(
+        SUPA_URL + '/rest/v1/rwood_sync?user_id=eq.' + encodeURIComponent(pfx + USERS_REGISTRY_KEY) + '&select=data',
+        { headers:{ 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY } }
+      );
+      if(!res.ok) continue;
+      const rows = await res.json();
+      if(!rows || !rows.length) continue;
+      const raw = rows[0].data;
+      const d = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      const users = (d && d.users) || [];
+      users.forEach(u => { u._company = company.name; u._companyCode = company.code; });
+      allUsers = allUsers.concat(users);
+    } catch(e){}
+  }
+
+  // Aussi réconcilier depuis les pointages de chaque entreprise
+  for(const company of companies){
+    try{
+      const pfx = company.code + '__';
+      const rows = await (await fetch(
+        SUPA_URL + '/rest/v1/rwood_sync?user_id=like.' + encodeURIComponent(pfx + 'company_pointages_v1_') + '*&select=data',
+        { headers:{ 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY } }
+      )).json();
+      if(!rows || !rows.length) continue;
+      rows.forEach(row => {
+        const d = typeof row.data === 'string' ? (()=>{try{return JSON.parse(row.data);}catch(e){return {};}})() : (row.data||{});
+        const name = d.ownerName || d.ownerAuthId || '';
+        const authId = d.ownerAuthId || '';
+        if(name && !allUsers.some(u => u.authId === authId && u._companyCode === company.code)){
+          allUsers.push({ authId, name, role: d.ownerRole || 'ouvrier', _company: company.name, _companyCode: company.code, updatedAt: row.updated_at });
+        }
+      });
+    } catch(e){}
+  }
+
+  const devList = (typeof devAccessFetchList === 'function') ? await devAccessFetchList() : [];
+  if(!allUsers.length){
     list.innerHTML = '<div class="hint" style="text-align:center;padding:20px 0;">Aucun utilisateur inscrit.<br><span style="font-size:12px;">Les comptes apparaissent ici dès qu\'un utilisateur crée son profil.</span></div>';
     return;
   }
   const roleLabel = { chef:'Chef d\'équipe', ouvrier:'Ouvrier', conducteur:'Conducteur', comptable:'Comptable', patron:'Patron' };
   const roleIcon  = { chef:'👷', ouvrier:'🪚', conducteur:'📋', comptable:'🧾', patron:'👑' };
-  const sorted = [...users].sort((a,b)=> (a.role||'').localeCompare(b.role||'') || (a.name||'').localeCompare(b.name||'','fr'));
+  const sorted = [...allUsers].sort((a,b)=> (a._companyCode||'').localeCompare(b._companyCode||'') || (a.role||'').localeCompare(b.role||'') || (a.name||'').localeCompare(b.name||'','fr'));
 
   list.innerHTML = `
     <div class="hint" style="margin-bottom:10px;">
       ${sorted.length} utilisateur${sorted.length>1?'s':''} inscrit${sorted.length>1?'s':''}
-      <span style="float:right;font-size:10px;opacity:0.6;">🗑 = registre + pointages</span>
-    </div>
-    <div style="font-size:12px;font-weight:700;color:var(--wood);margin:4px 0 10px;">🔑 Gestion des accès Dev — coche pour accorder le rôle développeur</div>` +
+    </div>` +
   sorted.map(u => {
     const isDev = Array.isArray(devList) && devList.includes(String(u.authId||'').toLowerCase());
     return `
     <div class="card" style="margin-bottom:8px;">
+      <div style="font-size:10px;font-weight:700;color:var(--wood);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">🏢 ${escapeHtml(u._company||u._companyCode||'—')}</div>
       <div style="display:flex; align-items:center; gap:10px;">
         <span style="font-size:22px; flex-shrink:0;">${roleIcon[u.role]||'👤'}</span>
         <div style="flex:1; min-width:0; overflow:hidden;">
@@ -30003,7 +30046,6 @@ async function _renderDevTabComptes(list){
     </div>`;
   }).join('');
 }
-
 async function confirmDeleteUserFull(authId, name){
   if(!confirm('Supprimer ' + name + ' ?\n\n— Retiré du registre\n— Ses pointages supprimés de la vue comptable\n\nIl pourra se reconnecter mais devra se réinscrire pour réapparaître.')) return;
   try{
