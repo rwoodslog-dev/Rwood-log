@@ -7509,10 +7509,11 @@ function showSyncStatus(state){ // 'syncing' | 'ok' | 'offline' | 'error'
 }
 
 function getSupaUserId(){
-  // L'identifiant RWOOD (prenom.nom) sert de clé de compte
-  return data.settings && data.settings.auth && data.settings.auth.authId
-    ? data.settings.auth.authId
-    : null;
+  // Clé fixe partagée par toute l'entreprise → une seule ligne Supabase par code entreprise.
+  // Avec le préfixe automatique (companyScopeBody), ça donne CODE__rwood-data.
+  // Ainsi tous les utilisateurs du même code voient et partagent les mêmes données.
+  const code = companyGetCode();
+  return code ? 'rwood-data' : null;
 }
 
 async function supaFetch(path, options={}){
@@ -7719,10 +7720,10 @@ function startSyncPolling(){
         const userId = record && record.user_id;
         const pfx = companyPrefix();
         if(!userId || !pfx || !userId.startsWith(pfx)) return;
-        // Ignorer nos propres mises à jour (déjà dans localStorage)
-        const myPrefixedId = pfx + getSupaUserId();
-        if(userId === myPrefixedId) return;
-        // Donnée d'un collègue → pull + rafraîchissement
+        // Seule la clé partagée de l'entreprise déclenche un pull
+        const sharedKey = pfx + 'rwood-data';
+        if(userId !== sharedKey) return;
+        // Rafraîchir
         try{
           await syncPull();
           refreshCurrentView();
@@ -21716,65 +21717,54 @@ function attemptAuthLogin(){
 }
 
 /* Changement de compte : cherche les données de l'autre utilisateur sur Supabase */
-async function attemptAccountSwitch(userId, pwd){
+async function attemptAccountSwitch(newAuthId, pwd){
   const errorEl = document.getElementById('authLoginError');
-  errorEl.textContent = "Recherche du compte sur le cloud…";
+
+  // Avec l'architecture clé partagée, toutes les données de l'entreprise
+  // sont dans CODE__rwood-data. On tire ce blob et on cherche le compte dedans.
+  errorEl.textContent = 'Recherche du compte sur le cloud…';
   errorEl.style.display = 'block';
   errorEl.style.color = 'var(--ink-soft)';
 
   if(!navigator.onLine){
-    errorEl.textContent = "Pas de connexion — impossible de récupérer un autre compte sans internet";
+    errorEl.textContent = 'Pas de connexion — impossible de récupérer un autre compte sans internet';
     errorEl.style.color = 'var(--red)';
     return;
   }
 
   try{
-    const res = await supaFetch(
-      '/rest/v1/rwood_sync?user_id=eq.' + encodeURIComponent(userId) + '&select=data',
-      { headers:{ 'Prefer':'' } }
-    );
-    if(!res.ok) throw new Error('Supabase error');
-    const rows = await res.json();
+    // Tirer les données partagées de l'entreprise
+    const pulled = await syncPull();
 
-    if(!rows || !rows.length || !rows[0].data){
-      errorEl.textContent = "Compte introuvable — aucune donnée dans le cloud pour " + userId;
-      errorEl.style.color = 'var(--red)';
+    // Chercher le compte dans les données chargées
+    const auth = data.settings && data.settings.auth;
+    if(auth && auth.authId === newAuthId){
+      const remotePwd = auth.authPwd;
+      if(remotePwd && pwd !== remotePwd){
+        errorEl.textContent = 'Mot de passe incorrect';
+        errorEl.style.color = 'var(--red)';
+        return;
+      }
+      // Connexion OK
+      auth.locked = false;
+      saveData();
+      document.getElementById('authScreen').style.display = 'none';
+      renderSites();
+      applyNavOrder();
+      applyNavHidden();
+      loadAccentColor();
       return;
     }
 
-    const remoteData = typeof rows[0].data === 'string'
-      ? (() => { try{ return JSON.parse(rows[0].data); }catch(e){ return {}; } })()
-      : (rows[0].data || {});
-    const remotePwd  = remoteData.settings && remoteData.settings.auth && remoteData.settings.auth.authPwd;
-
-    // Vérifier le mot de passe contre les données distantes
-    if(remotePwd && pwd !== remotePwd){
-      errorEl.textContent = "Mot de passe incorrect";
-      errorEl.style.color = 'var(--red)';
-      return;
-    }
-
-    // Mot de passe OK → charger les données distantes
-    data = Object.assign({}, data, remoteData);
-    if(data.settings && data.settings.auth){
-      data.settings.auth.locked = false;
-    }
-    localStorage.setItem('rwood-data', JSON.stringify(data));
-    localStorage.setItem('rwood-last-sync-ts', Date.now().toString());
-
-    document.getElementById('authScreen').style.display = 'none';
-    applyNavOrder();
-    applyNavHidden();
-    loadAccentColor();
-    renderSites();
-    startSyncPolling();
-    showToast("Bienvenue " + userId + " — données récupérées depuis le cloud ✓");
-
+    // Compte non trouvé dans les données partagées
+    errorEl.textContent = 'Compte ' + newAuthId + ' introuvable dans cette entreprise. Demande à créer ton profil.';
+    errorEl.style.color = 'var(--red)';
   } catch(e){
-    errorEl.textContent = "Erreur lors de la récupération du compte — réessaie";
+    errorEl.textContent = 'Erreur : ' + (e.message || 'réessaie');
     errorEl.style.color = 'var(--red)';
   }
 }
+
 
 
 /* ---- PIN ---- */
@@ -24277,7 +24267,7 @@ function navManagerToggle(view, visible){
    2. Ajouter un objet en tête du tableau CHANGELOG
    ══════════════════════════════════════════════════════ */
 
-const APP_VERSION = '1.9.0';
+const APP_VERSION = '1.9.1';
 
 const CHANGELOG = [
   {
