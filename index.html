@@ -21497,9 +21497,13 @@ function showAuthWelcome(){
 }
 function showAuthLoginForm(){
   _authShowOnly('authLoginForm');
-  document.getElementById('authLoginId').value = '';
+  // Pré-remplir l'identifiant si un compte existe déjà sur cet appareil
+  const knownId = data.settings && data.settings.auth && data.settings.auth.authId;
+  const idField = document.getElementById('authLoginId');
+  if(idField) idField.value = knownId || '';
   document.getElementById('authLoginPwd').value = '';
   document.getElementById('authLoginError').style.display = 'none';
+  if(typeof adjustLoginPwdKeyboard === 'function') adjustLoginPwdKeyboard();
 }
 function showAuthCreateForm(){
   _authShowOnly('authCreateForm');
@@ -21674,15 +21678,18 @@ function attemptAuthLogin(){
         showToast("Mot de passe défini : " + inputPwd);
       } else if(inputPwd !== auth.authPwd){
         errorEl.textContent = auth.pwdCustomized
-          ? "Mot de passe incorrect"
-          : "Mot de passe incorrect (ta date de naissance JJMMAAAA)";
+          ? 'Mot de passe incorrect — saisis tes 8 chiffres'
+          : 'Mot de passe incorrect (ta date de naissance JJMMAAAA)';
         errorEl.style.display = 'block'; return;
       }
 
     // ── Cas 2 : identifiant DIFFÉRENT du compte local → changement de compte ──
     } else {
       if(!inputPwd || !/^\d{8}$/.test(inputPwd)){
-        errorEl.textContent = "Identifiant ou mot de passe incorrect";
+        const knownId = auth && auth.authId;
+        errorEl.textContent = knownId
+          ? 'Identifiant inconnu sur cet appareil. Ton identifiant est : ' + knownId
+          : 'Identifiant ou mot de passe incorrect';
         errorEl.style.display = 'block'; return;
       }
       // Tenter de récupérer ce compte depuis Supabase
@@ -24266,7 +24273,7 @@ function navManagerToggle(view, visible){
    2. Ajouter un objet en tête du tableau CHANGELOG
    ══════════════════════════════════════════════════════ */
 
-const APP_VERSION = '1.8.8';
+const APP_VERSION = '1.8.9';
 
 const CHANGELOG = [
   {
