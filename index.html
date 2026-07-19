@@ -7581,11 +7581,16 @@ async function syncPush(){
       headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
       body: JSON.stringify({
         user_id: userId,
-        data: stripped
+        updated_at: new Date().toISOString(),
+        data: JSON.stringify(stripped)   // ← TEXT column : stringify obligatoire
       })
     });
     if(res.ok){ showSyncStatus('ok'); }
-    else       { showSyncStatus('error'); }
+    else {
+      const errBody = await res.text().catch(()=>'');
+      console.error('syncPush error', res.status, errBody);
+      showSyncStatus('error');
+    }
   } catch(e){
     showSyncStatus('offline');
   }
@@ -7602,8 +7607,12 @@ async function syncPull(){
     if(!res.ok) return false;
     const rows = await res.json();
     if(!rows || !rows.length) return false; // première fois sur ce compte
-    const remoteData = rows[0].data;
+    let remoteData = rows[0].data;
     if(!remoteData) return false;
+    // data peut être une string JSON (nouveau format) ou un objet (ancien format)
+    if(typeof remoteData === 'string'){
+      try{ remoteData = JSON.parse(remoteData); } catch(e){ return false; }
+    }
     // Fusion : préserve les photos locales (non synchronisées via le cloud)
     data = mergeSyncedData(data, remoteData);
     localStorage.setItem('rwood-data', JSON.stringify(prepareDataForLocalStorage(data)));
@@ -21717,7 +21726,9 @@ async function attemptAccountSwitch(userId, pwd){
       return;
     }
 
-    const remoteData = rows[0].data;
+    const remoteData = typeof rows[0].data === 'string'
+      ? (() => { try{ return JSON.parse(rows[0].data); }catch(e){ return {}; } })()
+      : (rows[0].data || {});
     const remotePwd  = remoteData.settings && remoteData.settings.auth && remoteData.settings.auth.authPwd;
 
     // Vérifier le mot de passe contre les données distantes
@@ -24250,7 +24261,7 @@ function navManagerToggle(view, visible){
    2. Ajouter un objet en tête du tableau CHANGELOG
    ══════════════════════════════════════════════════════ */
 
-const APP_VERSION = '1.8.2';
+const APP_VERSION = '1.8.3';
 
 const CHANGELOG = [
   {
